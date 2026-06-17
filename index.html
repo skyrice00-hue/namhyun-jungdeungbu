@@ -1395,6 +1395,44 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEdL0eQ3I2OyHdgjs-aivs7aQr80kQdeM",
+      authDomain: "namhyun-jungdeungbu.firebaseapp.com",
+      projectId: "namhyun-jungdeungbu",
+      storageBucket: "namhyun-jungdeungbu.firebasestorage.app",
+      messagingSenderId: "280967302931",
+      appId: "1:280967302931:web:e7cc56d0b5551c41de94e6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const DATA_DOC = doc(db, 'site', 'data');
+
+    // Expose to global scope for use in main script
+    window._firebaseDB = db;
+    window._firebaseDoc = DATA_DOC;
+    window._firebaseSetDoc = setDoc;
+    window._firebaseGetDoc = getDoc;
+    window._firebaseOnSnapshot = onSnapshot;
+    window._firebaseReady = true;
+
+    // Listen for real-time updates from other clients
+    onSnapshot(DATA_DOC, (snap) => {
+      if (!snap.exists()) return;
+      const remoteData = snap.data().payload ? JSON.parse(snap.data().payload) : null;
+      if (!remoteData) return;
+      // Only update if change came from another client (not our own save)
+      if (window._lastSaveTime && Date.now() - window._lastSaveTime < 2000) return;
+      if (window.data && window.applyRemoteData) {
+        window.applyRemoteData(remoteData);
+      }
+    });
+  </script>
 </head>
 <body>
 
@@ -2270,14 +2308,69 @@
 
   function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // Also save to Firestore for real-time sync
+    if (window._firebaseReady) {
+      window._lastSaveTime = Date.now();
+      window._firebaseSetDoc(window._firebaseDoc, { payload: JSON.stringify(data) })
+        .catch(function(e){ console.warn('Firebase save error:', e); });
+    }
   }
 
+  function applyRemoteData(parsed) {
+    data = parsed;
+    // migrate gallery
+    (data.gallery || []).forEach(function(g) {
+      if (g.imageData && !g.photos) { g.photos = [{id:1, data:g.imageData}]; delete g.imageData; }
+      else if (!g.photos) g.photos = [];
+    });
+    // re-render current page
+    const activePage = document.querySelector('.page.active');
+    if (activePage) {
+      const id = activePage.id.replace('page-','');
+      if (window['render'+id.charAt(0).toUpperCase()+id.slice(1)]) {
+        try { window['render'+id.charAt(0).toUpperCase()+id.slice(1)](); } catch(e){}
+      }
+    }
+    renderHome();
+  }
+  window.applyRemoteData = applyRemoteData;
+
   function loadData() {
+    // Try Firestore first, fall back to localStorage
+    if (window._firebaseReady) {
+      window._firebaseGetDoc(window._firebaseDoc).then(function(snap) {
+        if (snap.exists() && snap.data().payload) {
+          try {
+            const parsed = JSON.parse(snap.data().payload);
+            data = parsed;
+            applyDataMigrations();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            renderAll();
+          } catch(e) { loadFromLocal(); }
+        } else { loadFromLocal(); }
+      }).catch(function() { loadFromLocal(); });
+    } else {
+      // Firebase not ready yet, wait briefly then try again
+      setTimeout(function() {
+        if (window._firebaseReady) loadData();
+        else loadFromLocal();
+      }, 800);
+    }
+  }
+
+  function loadFromLocal() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         data = parsed;
+        applyDataMigrations();
+        renderAll();
+      } catch(e) { renderAll(); }
+    } else { renderAll(); }
+  }
+
+  function applyDataMigrations() {
         // backward compat: ensure events array exists
         // migrate single imageData → photos array
         (data.gallery || []).forEach(function(g) {
@@ -2364,8 +2457,11 @@
       { id: 5, startDate: '2026-07-29', endDate: '2026-07-31', title: '여름 수련회 🏕️ — 가평 오름비전빌리지', color: 'purple' },
       { id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' },
     ],
-    students: []
-  };
+    students: data.students || [];
+    if (!Array.isArray(data.students)) data.students = [];
+  }
+
+
 
   // ---- NAV ----
   function showPage(name) {
