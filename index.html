@@ -944,6 +944,106 @@
     .admin-mode .wr-who-text { display: none; }
     .admin-mode .wr-edit-input { display: inline-block; }
 
+    /* ===== STUDENTS ===== */
+    .stu-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .stu-stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .stu-stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .stu-stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .stu-filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .stu-filter-btn {
+      padding: 7px 18px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stu-filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .stu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .stu-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      text-align: center;
+      position: relative;
+      transition: box-shadow 0.15s;
+    }
+    .stu-card:hover { box-shadow: 0 2px 12px rgba(37,99,235,0.1); }
+    .stu-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 10px;
+    }
+    .stu-av-1 { background: #dbeafe; }
+    .stu-av-2 { background: #dcfce7; }
+    .stu-av-3 { background: #f3e8ff; }
+    .stu-name { font-weight: 700; font-size: 0.95rem; }
+    .stu-info { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+    .stu-note { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
+    .stu-card-actions {
+      display: none;
+      position: absolute;
+      top: 6px; right: 6px;
+      gap: 4px;
+    }
+    .admin-mode .stu-card-actions { display: flex; }
+    .stu-card-actions button {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.85rem; color: var(--text-muted);
+      padding: 2px;
+    }
+    .stu-card-actions button:hover { color: var(--primary); }
+    .stu-empty {
+      grid-column: 1/-1;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 40px 0;
+    }
+    @media (max-width: 600px) {
+      .stu-stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stu-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
+
     /* ===== CALENDAR ===== */
     .cal-header {
       display: flex;
@@ -1136,6 +1236,7 @@
       <a onclick="showPage('gallery')" id="nav-gallery">갤러리</a>
       <a onclick="showPage('qt')" id="nav-qt">말씀/큐티</a>
       <a onclick="showPage('media')" id="nav-media">📺 미디어</a>
+      <a onclick="showPage('students')" id="nav-students">👦 학생부</a>
       <a onclick="showPage('calendar')" id="nav-calendar">📅 캘린더</a>
       <button class="nav-admin-btn" id="admin-toggle-btn" onclick="toggleAdmin()">🔒 관리자</button>
     </div>
@@ -1511,6 +1612,34 @@
   </div>
 </div>
 
+<!-- ========== STUDENTS ========== -->
+<div class="page" id="page-students">
+  <div class="hero" style="padding: 56px 24px;">
+    <h1 style="font-size:1.8rem;">👦 학생부</h1>
+    <p>남현교회 중등부 학생 현황</p>
+  </div>
+  <div class="section">
+    <!-- 통계 -->
+    <div id="student-stats" class="stu-stats-grid"></div>
+
+    <div class="divider"></div>
+
+    <!-- 학년 필터 -->
+    <div class="stu-filter-bar">
+      <button class="stu-filter-btn active" onclick="filterStudents(0)" id="stu-filter-0">전체</button>
+      <button class="stu-filter-btn" onclick="filterStudents(1)" id="stu-filter-1">1학년</button>
+      <button class="stu-filter-btn" onclick="filterStudents(2)" id="stu-filter-2">2학년</button>
+      <button class="stu-filter-btn" onclick="filterStudents(3)" id="stu-filter-3">3학년</button>
+    </div>
+
+    <div class="admin-only" style="margin-bottom:16px;">
+      <button class="add-btn" onclick="openStudentModal()">+ 학생 추가</button>
+    </div>
+
+    <div id="student-grid" class="stu-grid"></div>
+  </div>
+</div>
+
 <!-- ========== CALENDAR ========== -->
 <div class="page" id="page-calendar">
   <div class="hero" style="padding: 56px 24px;">
@@ -1686,8 +1815,8 @@
       <label>시작일</label>
       <input type="date" id="cal-event-start" />
     </div>
-    <div class="form-group">
-      <label>종료일 <span style="color:var(--text-muted);font-size:0.8rem;">(하루짜리면 시작일과 동일)</span></label>
+    <div class="form-group" id="cal-end-group">
+      <label>종료일 <span style="color:var(--text-muted);font-size:0.8rem;">(하루짜리면 비워두세요)</span></label>
       <input type="date" id="cal-event-end" />
     </div>
     <div class="form-group">
@@ -1700,9 +1829,67 @@
         <option value="red">🔴 빨강 (중요)</option>
       </select>
     </div>
+    <div class="form-group">
+      <label>반복</label>
+      <select id="cal-event-recurring" onchange="toggleRecurringEnd()">
+        <option value="">반복 없음</option>
+        <option value="weekly-friday">매주 금요일</option>
+        <option value="weekly-sunday">매주 일요일</option>
+        <option value="weekly-custom">매주 (요일 선택)</option>
+        <option value="monthly">매월 같은 날</option>
+      </select>
+    </div>
+    <div class="form-group" id="cal-weekday-group" style="display:none;">
+      <label>반복 요일</label>
+      <select id="cal-event-weekday">
+        <option value="0">일요일</option>
+        <option value="1">월요일</option>
+        <option value="2">화요일</option>
+        <option value="3">수요일</option>
+        <option value="4">목요일</option>
+        <option value="5">금요일</option>
+        <option value="6">토요일</option>
+      </select>
+    </div>
+    <div class="form-group" id="cal-recurring-end-group" style="display:none;">
+      <label>반복 종료일</label>
+      <input type="date" id="cal-event-recurring-end" />
+    </div>
     <div class="form-actions">
       <button class="btn-cancel" onclick="closeModal('calendar-modal')">취소</button>
       <button class="btn-submit" onclick="submitCalendarEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Student Modal -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('student-modal')">✕</button>
+    <h3 style="margin-bottom:20px;" id="student-modal-title">학생 추가</h3>
+    <div class="form-group">
+      <label>이름</label>
+      <input type="text" id="stu-name" placeholder="이름" />
+    </div>
+    <div class="form-group">
+      <label>학년</label>
+      <select id="stu-grade">
+        <option value="1">1학년</option>
+        <option value="2">2학년</option>
+        <option value="3">3학년</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>반</label>
+      <input type="text" id="stu-class" placeholder="예: 1반" />
+    </div>
+    <div class="form-group">
+      <label>메모 <span style="color:var(--text-muted);font-size:0.8rem;">(선택)</span></label>
+      <input type="text" id="stu-note" placeholder="예: 새가족, 리더 등" />
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal('student-modal')">취소</button>
+      <button class="btn-submit" onclick="submitStudent()">저장</button>
     </div>
   </div>
 </div>
@@ -1815,6 +2002,7 @@
     else if (id === 'qt') renderQT();
     else if (id === 'intro') renderTeachers();
     else if (id === 'calendar') renderCalendar();
+    else if (id === 'students') renderStudents();
   }
 
   // ---- LOCALSTORAGE ----
@@ -1906,7 +2094,8 @@
       { id: 4, startDate: '2026-06-28', endDate: '2026-06-28', title: '반별 대심방 — 3학년 5반', color: 'blue' },
       { id: 5, startDate: '2026-07-29', endDate: '2026-07-31', title: '여름 수련회 🏕️ — 가평 오름비전빌리지', color: 'purple' },
       { id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' },
-    ]
+    ],
+    students: []
   };
 
   // ---- NAV ----
@@ -1921,6 +2110,7 @@
     if (name === 'qt') renderQT();
     if (name === 'intro') renderTeachers();
     if (name === 'calendar') renderCalendar();
+    if (name === 'students') renderStudents();
     if (name === 'media') {} // static page
     window.scrollTo(0, 0);
     if (adminMode) setTimeout(() => setEditableAll(true), 50);
@@ -2386,190 +2576,100 @@
     }, 50);
   }
 
-  // ---- CALENDAR ----
-  let calYear = new Date().getFullYear();
-  let calMonth = new Date().getMonth(); // 0-indexed
+  // ---- STUDENTS ----
+  let stuFilter = 0; // 0=전체, 1~3=학년
 
-  function changeMonth(delta) {
-    calMonth += delta;
-    if (calMonth > 11) { calMonth = 0; calYear++; }
-    if (calMonth < 0)  { calMonth = 11; calYear--; }
-    renderCalendar();
-  }
-
-  function renderCalendar() {
-    const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-    const label = document.getElementById('cal-month-label');
-    if (label) label.textContent = `${calYear}년 ${monthNames[calMonth]}`;
-
-    const grid = document.getElementById('cal-grid');
+  function renderStudents() {
+    const students = data.students || [];
+    // Stats
+    const total = students.length;
+    const g1 = students.filter(s => Number(s.grade) === 1).length;
+    const g2 = students.filter(s => Number(s.grade) === 2).length;
+    const g3 = students.filter(s => Number(s.grade) === 3).length;
+    const statsEl = document.getElementById('student-stats');
+    if (statsEl) statsEl.innerHTML = `
+      <div class="stu-stat-card"><div class="stu-stat-num">${total}</div><div class="stu-stat-label">전체</div></div>
+      <div class="stu-stat-card"><div class="stu-stat-num" style="color:#3b82f6;">${g1}</div><div class="stu-stat-label">1학년</div></div>
+      <div class="stu-stat-card"><div class="stu-stat-num" style="color:#22c55e;">${g2}</div><div class="stu-stat-label">2학년</div></div>
+      <div class="stu-stat-card"><div class="stu-stat-num" style="color:#a855f7;">${g3}</div><div class="stu-stat-label">3학년</div></div>`;
+    // Cards
+    const filtered = stuFilter === 0 ? students : students.filter(s => Number(s.grade) === stuFilter);
+    const avatarIcons = ['👦','👧','🧑','👩','🙋','🙋‍♂️'];
+    const grid = document.getElementById('student-grid');
     if (!grid) return;
-
-    const today = new Date();
-    const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
-    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-    const daysInPrev = new Date(calYear, calMonth, 0).getDate();
-
-    // Build a map: dateStr → [events]
-    const eventMap = {};
-    (data.events || []).forEach(ev => {
-      if (ev.recurring === 'weekly-friday') {
-        // Generate all Fridays between startDate and endDate
-        const start = new Date(ev.startDate);
-        const end = ev.endDate ? new Date(ev.endDate) : new Date('2099-12-31');
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          if (d.getDay() === 5) { // Friday
-            const key = d.toISOString().slice(0,10);
-            if (!eventMap[key]) eventMap[key] = [];
-            eventMap[key].push({ ...ev, isFirst: false, isLast: false, isMulti: false });
-          }
-        }
-      } else {
-        const start = new Date(ev.startDate);
-        const end = ev.endDate ? new Date(ev.endDate) : start;
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          const key = d.toISOString().slice(0,10);
-          if (!eventMap[key]) eventMap[key] = [];
-          const isFirst = key === ev.startDate;
-          const isLast  = key === (ev.endDate || ev.startDate);
-          const isMulti = ev.startDate !== (ev.endDate || ev.startDate);
-          eventMap[key].push({ ...ev, isFirst, isLast, isMulti });
-        }
-      }
-    });
-
-    let html = '';
-    let dayCount = 0;
-    // Prev month trailing days
-    for (let i = firstDay - 1; i >= 0; i--) {
-      const d = daysInPrev - i;
-      html += `<div class="cal-cell other-month"><span class="cal-day-num">${d}</span></div>`;
-      dayCount++;
-    }
-    // Current month
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
-      const evs = eventMap[dateStr] || [];
-      const evChips = evs.map(ev => {
-        let cls = `cal-event-chip cal-chip-${ev.color||'blue'}`;
-        if (ev.isMulti && ev.isFirst) cls += ' multiday-start';
-        else if (ev.isMulti && ev.isLast) cls += ' multiday-end';
-        else if (ev.isMulti) cls += ' multiday-mid';
-        const title = ev.isFirst || !ev.isMulti ? ev.title : '';
-        return `<span class="${cls}" title="${ev.title}">${title}</span>`;
-      }).join('');
-      html += `<div class="cal-cell${isToday?' today':''}">
-        <span class="cal-day-num">${d}</span>
-        ${evChips}
-      </div>`;
-      dayCount++;
-    }
-    // Next month leading days
-    const remaining = 42 - dayCount;
-    for (let d = 1; d <= remaining; d++) {
-      html += `<div class="cal-cell other-month"><span class="cal-day-num">${d}</span></div>`;
-    }
-    grid.innerHTML = html;
-
-    // Event list for this month
-    const listEl = document.getElementById('cal-event-list');
-    if (!listEl) return;
-    const monthEvs = (data.events || []).filter(ev => {
-      if (ev.recurring === 'weekly-friday') {
-        // show if any Friday in this month falls within the range
-        const start = new Date(ev.startDate);
-        const end = ev.endDate ? new Date(ev.endDate) : new Date('2099-12-31');
-        const firstOfMonth = new Date(calYear, calMonth, 1);
-        const lastOfMonth = new Date(calYear, calMonth + 1, 0);
-        return start <= lastOfMonth && end >= firstOfMonth;
-      }
-      const s = new Date(ev.startDate);
-      const e = ev.endDate ? new Date(ev.endDate) : s;
-      return (s.getFullYear()===calYear && s.getMonth()===calMonth) ||
-             (e.getFullYear()===calYear && e.getMonth()===calMonth);
-    });
-    if (monthEvs.length === 0) {
-      listEl.innerHTML = `<h3>이번 달 일정</h3><p style="color:var(--text-muted);font-size:0.9rem;">일정이 없습니다.</p>`;
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="stu-empty">${adminMode ? '+ 학생 추가 버튼으로 등록하세요.' : '등록된 학생이 없습니다.'}</div>`;
       return;
     }
-    const adminActions = (ev) => adminMode
-      ? `<div class="cal-event-row-actions">
-           <button onclick="editCalendarEvent(${ev.id})">✏️</button>
-           <button onclick="deleteCalendarEvent(${ev.id})">🗑️</button>
-         </div>` : '';
-
-    const fmtDate = (ev) => {
-      if (ev.recurring === 'weekly-friday') return '매주 금요일';
-      const sd = new Date(ev.startDate);
-      const ed = ev.endDate ? new Date(ev.endDate) : null;
-      const ko = (d) => `${d.getMonth()+1}월 ${d.getDate()}일`;
-      if (!ed || ev.startDate === ev.endDate) return ko(sd);
-      return `${ko(sd)} ~ ${ko(ed)}`;
-    };
-    listEl.innerHTML = `<h3>이번 달 일정 (${monthEvs.length}건)</h3>` +
-      monthEvs.sort((a,b)=>a.startDate.localeCompare(b.startDate)).map(ev => `
-        <div class="cal-event-row">
-          <div class="cal-event-dot dot-${ev.color||'blue'}"></div>
-          <div class="cal-event-row-content">
-            <div class="cal-event-row-title">${ev.title}</div>
-            <div class="cal-event-row-date">${fmtDate(ev)}</div>
+    grid.innerHTML = filtered
+      .sort((a,b) => Number(a.grade)-Number(b.grade) || (a.class||'').localeCompare(b.class||'') || a.name.localeCompare(b.name))
+      .map(s => {
+        const avClass = `stu-av-${s.grade}`;
+        const icon = avatarIcons[(s.name.charCodeAt(0) || 0) % avatarIcons.length];
+        return `<div class="stu-card">
+          <div class="stu-card-actions">
+            <nt(${s.id})">✏️</button>
+            <button onclick="deleteStudent(${s.id})">🗑️</button>
           </div>
-          ${adminActions(ev)}
-        </div>`).join('');
+          <div class="stu-avatar ${avClass}">${icon}</div>
+          <div class="stu-name">${s.name}</div>
+          <div class="stu-info">${s.grade}학년 ${s.class ? s.class+'반' : ''}</div>
+          ${s.note ? `<div class="stu-note">${s.note}</div>` : ''}
+        </div>`;
+      }).join('');
   }
 
-  function openCalendarModal(ev) {
-    const modal = document.getElementById('calendar-modal');
-    const titleEl = document.getElementById('calendar-modal-title');
-    if (ev) {
-      titleEl.textContent = '일정 수정';
-      document.getElementById('cal-event-title').value = ev.title;
-      document.getElementById('cal-event-start').value = ev.startDate;
-      document.getElementById('cal-event-end').value = ev.endDate || ev.startDate;
-      document.getElementById('cal-event-color').value = ev.color || 'blue';
-      modal.dataset.editId = ev.id;
-    } else {
-      titleEl.textContent = '일정 추가';
-      document.getElementById('cal-event-title').value = '';
-      document.getElementById('cal-event-start').value = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
-      document.getElementById('cal-event-end').value = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
-      document.getElementById('cal-event-color').value = 'blue';
-      delete modal.dataset.editId;
-    }
-    modal.style.display = 'flex';
+  function filterStudents(grade) {
+    stuFilter = grade;
+    [0,1,2,3].forEach(g => {
+      const btn = document.getElementById('stu-filter-'+g);
+      if (btn) btn.classList.toggle('active', g === grade);
+    });
+    renderStudents();
   }
 
-  function submitCalendarEvent() {
-    const title = document.getElementById('cal-event-title').value.trim();
-    const startDate = document.getElementById('cal-event-start').value;
-    const endDate = document.getElementById('cal-event-end').value;
-    const color = document.getElementById('cal-event-color').value;
-    if (!title || !startDate) { showToast('제목과 시작일을 입력해주세요.'); return; }
-    const modal = document.getElementById('calendar-modal');
+  function openStudentModal(student) {
+    const modal = document.getElementById('student-modal');
+    document.getElementById('student-modal-title').textContent = student ? '학생 수정' : '학생 추가';
+    document.getElementById('stu-name').value = student ? student.name : '';
+    document.getElementById('stu-grade').value = student ? student.grade : '1';
+    document.getElementById('stu-class').value = student ? (student.class || '') : '';
+    document.getElementById('stu-note').value = student ? (student.note || '') : '';
+    modal.dataset.editId = student ? student.id : '';
+    openModal('student-modal');
+  }
+
+  function submitStudent() {
+    const name = document.getElementById('stu-name').value.trim();
+    const grade = document.getElementById('stu-grade').value;
+    const cls = document.getElementById('stu-class').value.trim();
+    const note = document.getElementById('stu-note').value.trim();
+    if (!name) { showToast('이름을 입력해주세요.'); return; }
+    const modal = document.getElementById('student-modal');
     const editId = modal.dataset.editId ? Number(modal.dataset.editId) : null;
     if (editId) {
-      const idx = data.events.findIndex(e => e.id === editId);
-      if (idx >= 0) data.events[idx] = { id: editId, startDate, endDate: endDate||startDate, title, color };
+      const idx = data.students.findIndex(s => s.id === editId);
+      if (idx >= 0) data.students[idx] = { id: editId, name, grade: Number(grade), class: cls, note };
     } else {
-      data.events.push({ id: Date.now(), startDate, endDate: endDate||startDate, title, color });
+      if (!data.students) data.students = [];
+      data.students.push({ id: Date.now(), name, grade: Number(grade), class: cls, note });
     }
     saveData();
-    closeModal('calendar-modal');
-    renderCalendar();
-    showToast(editId ? '일정이 수정되었습니다.' : '일정이 추가되었습니다.');
+    closeModal('student-modal');
+    renderStudents();
+    showToast(editId ? '수정되었습니다.' : '학생이 추가되었습니다.');
   }
 
-  function editCalendarEvent(id) {
-    const ev = data.events.find(e => e.id === id);
-    if (ev) openCalendarModal(ev);
+  function editStudent(id) {
+    const s = (data.students||[]).find(x => x.id === id);
+    if (s) openStudentModal(s);
   }
 
-  function deleteCalendarEvent(id) {
-    if (!confirm('이 일정을 삭제할까요?')) return;
-    data.events = data.events.filter(e => e.id !== id);
-    saveData(); renderCalendar();
-    showToast('일정이 삭제되었습니다.');
+  function deleteStudent(id) {
+    if (!confirm('이 학생을 삭제할까요?')) return;
+    data.students = (data.students||[]).filter(s => s.id !== id);
+    saveData(); renderStudents();
+    showToast('삭제되었습니다.');
   }
 
   // ---- INIT ----
