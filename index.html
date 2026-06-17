@@ -715,6 +715,80 @@
       display: block;
     }
     .gallery-upload-input { display: none; }
+    /* Album photo count badge */
+    .gallery-photo-count {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.55); color: white;
+      font-size: 0.7rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 100px;
+    }
+    .gallery-item { position: relative; cursor: pointer; }
+    /* Lightbox */
+    .lightbox-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.92);
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    .lightbox-overlay.open { display: flex; }
+    .lightbox-top {
+      width: 100%; max-width: 900px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; color: white;
+    }
+    .lightbox-title { font-weight: 700; font-size: 1rem; }
+    .lightbox-counter { font-size: 0.82rem; color: rgba(255,255,255,0.6); }
+    .lightbox-close-btn {
+      background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 4px 10px;
+    }
+    .lightbox-main {
+      position: relative; width: 100%; max-width: 900px;
+      display: flex; align-items: center; justify-content: center;
+      flex: 1; min-height: 0; padding: 0 56px;
+    }
+    .lightbox-img {
+      max-width: 100%; max-height: 65vh;
+      object-fit: contain; border-radius: 8px;
+      display: block; margin: 0 auto;
+    }
+    .lightbox-nav-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      font-size: 2rem; padding: 12px 16px; border-radius: 8px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .lightbox-nav-btn:hover { background: rgba(255,255,255,0.3); }
+    .lightbox-nav-btn.prev { left: 8px; }
+    .lightbox-nav-btn.next { right: 8px; }
+    .lightbox-thumbs {
+      width: 100%; max-width: 900px;
+      display: flex; gap: 6px; overflow-x: auto;
+      padding: 12px 16px; scrollbar-width: thin;
+    }
+    .lightbox-thumb {
+      width: 56px; height: 56px; flex-shrink: 0;
+      border-radius: 6px; object-fit: cover;
+      opacity: 0.5; cursor: pointer; border: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .lightbox-thumb.active { opacity: 1; border-color: white; }
+    .lightbox-bottom {
+      width: 100%; max-width: 900px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px 16px;
+    }
+    .lightbox-upload-btn {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+      color: white; border-radius: 8px; padding: 7px 14px;
+      font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+    }
+    .lightbox-delete-btn {
+      background: rgba(220,38,38,0.4); border: 1px solid rgba(220,38,38,0.6);
+      color: white; border-radius: 8px; padding: 7px 14px;
+      font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+    }
+    .lightbox-caption {
+      flex: 1; color: rgba(255,255,255,0.7); font-size: 0.82rem; text-align: center;
+    }
     .gallery-img-placeholder {
       width: 100%;
       aspect-ratio: 4/3;
@@ -1197,6 +1271,22 @@
       .cal-day-num { font-size: 0.72rem; }
     }
 
+    /* ===== PRINT ===== */
+    @media print {
+      nav, .admin-bar, .no-print, button, .modal-overlay:not(#print-modal) { display: none !important; }
+      #print-modal { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
+      #print-modal .modal { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+      .no-print { display: none !important; }
+      body { background: white !important; }
+    }
+    .print-order-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .print-order-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+    .print-order-table td:first-child { font-weight: 600; color: var(--primary); width: 36%; }
+    .print-order-table tr.highlight-row td { background: #eff6ff; font-weight: 700; }
+    .print-header { text-align: center; margin-bottom: 20px; }
+    .print-header h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .print-header p { font-size: 0.8rem; color: var(--text-muted); }
+
     /* TOAST */
     .toast {
       position: fixed;
@@ -1219,6 +1309,7 @@
       opacity: 1;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1301,6 +1392,7 @@
       <div class="worship-order-header">
         <span class="worship-date" id="worship-date-el" onblur="data.worshipDate=this.textContent;saveData()">2026. 6. 14</span>
         <span class="worship-title-badge">예배 순서</span>
+        <button onclick="printWorshipOrder()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);">🖨️ 인쇄</button>
       </div>
       <div class="worship-rows" id="worship-rows-container">
         <!-- rendered by JS -->
@@ -1532,7 +1624,7 @@
   </div>
   <div class="section">
     <button class="add-btn" onclick="openAddGallery()">+ 앨범 추가</button>
-    <input type="file" id="gallery-img-file-input" accept="image/*" style="display:none;" onchange="handleGalleryImageUpload(event)" />
+    <input type="file" id="gallery-img-file-input" accept="image/*" multiple style="display:none;" onchange="handleAlbumPhotosUpload(event)" />
     <div class="gallery-grid" id="gallery-grid"></div>
 
     <!-- 말씀 암송카드 섹션 -->
@@ -1632,8 +1724,13 @@
       <button class="stu-filter-btn" onclick="filterStudents(3)" id="stu-filter-3">3학년</button>
     </div>
 
-    <div class="admin-only" style="margin-bottom:16px;">
-      <button class="add-btn" onclick="openStudentModal()">+ 학생 추가</button>
+    <div class="admin-only" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="add-btn" style="margin-bottom:0;" onclick="openStudentModal()">+ 학생 추가</button>
+      <button class="add-btn" style="margin-bottom:0;background:#16a34a;" onclick="downloadStudentExcel()">⬇ 엑셀 다운로드</button>
+      <label class="add-btn" style="margin-bottom:0;background:#7c3aed;cursor:pointer;">
+        📂 엑셀 업로드
+        <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="uploadStudentExcel(event)" />
+      </label>
     </div>
 
     <div id="student-grid" class="stu-grid"></div>
@@ -1864,33 +1961,89 @@
 
 <!-- Student Modal -->
 <div class="modal-overlay" id="student-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px;">
     <button class="modal-close" onclick="closeModal('student-modal')">✕</button>
     <h3 style="margin-bottom:20px;" id="student-modal-title">학생 추가</h3>
-    <div class="form-group">
-      <label>이름</label>
-      <input type="text" id="stu-name" placeholder="이름" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group" style="margin:0;">
+        <label>이름 *</label>
+        <input type="text" id="stu-name" placeholder="홍길동" />
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>학교</label>
+        <input type="text" id="stu-school" placeholder="고척중학교" />
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>생년월일</label>
+        <input type="date" id="stu-birth" onchange="autoCalcGrade()" />
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>학년 <span id="stu-grade-auto" style="color:var(--primary);font-size:0.78rem;"></span></label>
+        <select id="stu-grade">
+          <option value="1">1학년</option>
+          <option value="2">2학년</option>
+          <option value="3">3학년</option>
+          <option value="0">기타</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>핸드폰번호</label>
+        <input type="text" id="stu-phone" placeholder="010-0000-0000" />
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>이메일</label>
+        <input type="email" id="stu-email" placeholder="example@email.com" />
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>집주소</label>
+      <input type="text" id="stu-address" placeholder="서울특별시 구로구 ..." />
     </div>
     <div class="form-group">
-      <label>학년</label>
-      <select id="stu-grade">
-        <option value="1">1학년</option>
-        <option value="2">2학년</option>
-        <option value="3">3학년</option>
-      </select>
+      <label>가족관계 / 보호자</label>
+      <input type="text" id="stu-family" placeholder="예: 아버지 홍철수 010-1234-5678, 어머니 이영희 010-9876-5432" />
     </div>
     <div class="form-group">
-      <label>반</label>
-      <input type="text" id="stu-class" placeholder="예: 1반" />
-    </div>
-    <div class="form-group">
-      <label>메모 <span style="color:var(--text-muted);font-size:0.8rem;">(선택)</span></label>
-      <input type="text" id="stu-note" placeholder="예: 새가족, 리더 등" />
+      <label>메모</label>
+      <input type="text" id="stu-note" placeholder="예: 새가족, 리더, 특이사항 등" />
     </div>
     <div class="form-actions">
       <button class="btn-cancel" onclick="closeModal('student-modal')">취소</button>
       <button class="btn-submit" onclick="submitStudent()">저장</button>
     </div>
+  </div>
+</div>
+
+<!-- Print Modal -->
+<div class="modal-overlay" id="print-modal" style="z-index:1000;">
+  <div class="modal" style="max-width:500px;padding:0;">
+    <div id="print-content" style="padding:32px;">
+      <!-- filled by JS -->
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;" class="no-print">
+      <button class="btn-cancel" onclick="closeModal('print-modal')">닫기</button>
+      <button class="btn-submit" onclick="window.print()">🖨️ 인쇄</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox-overlay">
+  <div class="lightbox-top">
+    <div>
+      <div class="lightbox-title" id="lb-title"></div>
+      <div class="lightbox-counter" id="lb-counter"></div>
+    </div>
+    <button class="lightbox-close-btn" onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lightbox-main">
+    <button class="lightbox-nav-btn prev" onclick="lightboxNav(-1)">&#8249;</button>
+    <img class="lightbox-img" id="lb-img" src="" alt="" />
+    <button class="lightbox-nav-btn next" onclick="lightboxNav(1)">&#8250;</button>
+  </div>
+  <div class="lightbox-thumbs" id="lb-thumbs"></div>
+  <div class="lightbox-bottom" id="lb-bottom">
+    <span class="lightbox-caption" id="lb-caption"></span>
   </div>
 </div>
 
@@ -2019,6 +2172,15 @@
         const parsed = JSON.parse(saved);
         data = parsed;
         // backward compat: ensure events array exists
+        // migrate single imageData → photos array
+        (data.gallery || []).forEach(function(g) {
+          if (g.imageData && !g.photos) {
+            g.photos = [{ id: 1, data: g.imageData }];
+            delete g.imageData;
+          } else if (!g.photos) {
+            g.photos = [];
+          }
+        });
         if (!data.events) data.events = [
           { id: 1, startDate: '2026-06-14', endDate: '2026-06-14', title: '반별 대심방 — 3학년 4반', color: 'blue' },
           { id: 3, startDate: '2026-06-21', endDate: '2026-06-21', title: '중등부 친구초청잔치 🎉', color: 'orange' },
@@ -2175,49 +2337,161 @@
   function renderGallery() {
     const el = document.getElementById('gallery-grid');
     el.innerHTML = data.gallery.map(g => {
-      const thumbHTML = g.imageData
-        ? `<img src="${g.imageData}" alt="${g.title}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;" />`
+      const photos = g.photos || (g.imageData ? [{ id: 1, data: g.imageData }] : []);
+      const thumbHTML = photos.length > 0
+        ? `<img src="${photos[0].data}" alt="${g.title}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;" />`
         : `<div class="gallery-thumb ${g.color || ''}" style="font-size:2.8rem;display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;">${g.icon || '🖼️'}</div>`;
-      return `<div class="gallery-item">
+      const countBadge = photos.length > 0 ? `<span class="gallery-photo-count">📷 ${photos.length}</span>` : '';
+      return `<div class="gallery-item" onclick="openAlbum(${g.id})">
         ${thumbHTML}
+        ${countBadge}
         <div class="gallery-item-info">
           <h4>${g.title}</h4>
           <p>${g.date}</p>
           <div class="card-actions">
-            <button class="btn-edit" onclick="editGallery(${g.id})">✏️ 수정</button>
-            <button class="btn-edit" onclick="triggerGalleryImgUpload(${g.id})" style="background:white;border-color:#16a34a;color:#16a34a;">📷 사진</button>
-            <button class="btn-delete" onclick="deleteGallery(${g.id})">🗑 삭제</button>
+            <button class="btn-edit" onclick="event.stopPropagation();editGallery(${g.id})">✏️ 수정</button>
+            <button class="btn-delete" onclick="event.stopPropagation();deleteGallery(${g.id})">🗑 삭제</button>
           </div>
         </div>
       </div>`;
-    }).join('') + `
+    }).join('') + (adminMode ? `
       <div class="gallery-add-zone" onclick="openAddGallery()">
         <span class="plus">+</span>
         <span>앨범 추가</span>
-      </div>`;
+      </div>` : '');
   }
 
+  // ---- LIGHTBOX ----
+  let lbAlbumId = null;
+  let lbIndex = 0;
+
+  function getAlbumPhotos(g) {
+    if (g.photos && g.photos.length > 0) return g.photos;
+    if (g.imageData) return [{ id: 1, data: g.imageData }];
+    return [];
+  }
+
+  function openAlbum(id) {
+    const g = data.gallery.find(x => x.id === id);
+    if (!g) return;
+    const photos = getAlbumPhotos(g);
+    if (photos.length === 0 && !adminMode) { showToast('사진이 없습니다.'); return; }
+    lbAlbumId = id;
+    lbIndex = 0;
+    renderLightbox();
+    document.getElementById('lightbox-overlay').classList.add('open');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox-overlay').classList.remove('open');
+    lbAlbumId = null;
+  }
+
+  function renderLightbox() {
+    const g = data.gallery.find(x => x.id === lbAlbumId);
+    if (!g) return;
+    const photos = getAlbumPhotos(g);
+    document.getElementById('lb-title').textContent = g.title + (g.date ? ' · ' + g.date : '');
+    document.getElementById('lb-counter').textContent = photos.length > 0 ? (lbIndex + 1) + ' / ' + photos.length : '사진 없음';
+    const imgEl = document.getElementById('lb-img');
+    if (photos.length > 0) {
+      imgEl.src = photos[lbIndex].data;
+      imgEl.style.display = '';
+    } else {
+      imgEl.style.display = 'none';
+    }
+    // Thumbnails
+    document.getElementById('lb-thumbs').innerHTML = photos.map((p, i) =>
+      `<img class="lightbox-thumb${i === lbIndex ? ' active' : ''}" src="${p.data}" onclick="lbGoTo(${i})" />`
+    ).join('');
+    // Bottom bar
+    const bottomEl = document.getElementById('lb-bottom');
+    let bottomHTML = `<span class="lightbox-caption">${g.desc || ''}</span>`;
+    if (adminMode) {
+      bottomHTML += `<button class="lightbox-upload-btn" onclick="triggerAlbumPhotoUpload()">+ 사진 추가</button>`;
+      if (photos.length > 0) {
+        bottomHTML += `<button class="lightbox-delete-btn" onclick="deleteCurrentPhoto()">🗑 삭제</button>`;
+      }
+    }
+    bottomEl.innerHTML = bottomHTML;
+  }
+
+  function lightboxNav(dir) {
+    const g = data.gallery.find(x => x.id === lbAlbumId);
+    if (!g) return;
+    const photos = getAlbumPhotos(g);
+    lbIndex = (lbIndex + dir + photos.length) % photos.length;
+    renderLightbox();
+  }
+
+  function lbGoTo(i) { lbIndex = i; renderLightbox(); }
+
+  // keyboard nav
+  document.addEventListener('keydown', function(e) {
+    const lb = document.getElementById('lightbox-overlay');
+    if (!lb || !lb.classList.contains('open')) return;
+    if (e.key === 'ArrowRight') lightboxNav(1);
+    if (e.key === 'ArrowLeft') lightboxNav(-1);
+    if (e.key === 'Escape') closeLightbox();
+  });
+
   let pendingGalleryImageId = null;
+  function triggerAlbumPhotoUpload() {
+    pendingGalleryImageId = lbAlbumId;
+    const inp = document.getElementById('gallery-img-file-input');
+    inp.click();
+  }
+
   function triggerGalleryImgUpload(id) {
     pendingGalleryImageId = id;
     document.getElementById('gallery-img-file-input').click();
   }
-  function handleGalleryImageUpload(e) {
-    const file = e.target.files[0];
-    if (!file || !pendingGalleryImageId) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      const g = data.gallery.find(x => x.id === pendingGalleryImageId);
-      if (g) {
-        g.imageData = ev.target.result;
-        saveData();
-        renderGallery();
-        showToast('사진이 업로드되었습니다 ✓');
-      }
-      pendingGalleryImageId = null;
-      e.target.value = '';
-    };
-    reader.readAsDataURL(file);
+
+  function handleAlbumPhotosUpload(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length || !pendingGalleryImageId) return;
+    const g = data.gallery.find(x => x.id === pendingGalleryImageId);
+    if (!g) return;
+    if (!g.photos) {
+      g.photos = g.imageData ? [{ id: Date.now(), data: g.imageData }] : [];
+      delete g.imageData;
+    }
+    let loaded = 0;
+    files.forEach(function(file) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        g.photos.push({ id: Date.now() + loaded, data: ev.target.result });
+        loaded++;
+        if (loaded === files.length) {
+          lbIndex = g.photos.length - files.length;
+          saveData();
+          renderGallery();
+          if (lbAlbumId === pendingGalleryImageId) renderLightbox();
+          showToast(files.length + '장 업로드 완료!');
+          pendingGalleryImageId = null;
+          e.target.value = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function deleteCurrentPhoto() {
+    const g = data.gallery.find(x => x.id === lbAlbumId);
+    if (!g) return;
+    const photos = getAlbumPhotos(g);
+    if (!confirm('이 사진을 삭제할까요?')) return;
+    if (g.photos) {
+      g.photos.splice(lbIndex, 1);
+    } else {
+      delete g.imageData;
+      g.photos = [];
+    }
+    lbIndex = Math.max(0, lbIndex - 1);
+    saveData();
+    renderGallery();
+    renderLightbox();
+    showToast('사진이 삭제되었습니다.');
   }
 
   function renderQT() {
@@ -2729,6 +3003,13 @@
             eventMap[key].push(Object.assign({}, ev, { isFirst:false, isLast:false, isMulti:false }));
           }
         }
+      } else if (ev.recurring === 'yearly') {
+        // Show on same MM-DD every year in current view
+        var origDate = new Date(ev.startDate);
+        var dateInView = new Date(calYear, origDate.getMonth(), origDate.getDate());
+        var key = dateInView.toISOString().slice(0,10);
+        if (!eventMap[key]) eventMap[key] = [];
+        eventMap[key].push(Object.assign({}, ev, { isFirst:false, isLast:false, isMulti:false }));
       } else {
         var start = new Date(ev.startDate);
         var end = ev.endDate ? new Date(ev.endDate) : start;
@@ -2828,6 +3109,13 @@
   // ---- STUDENTS ----
   let stuFilter = 0; // 0=전체, 1~3=학년
 
+  function calcGradeDisplay(s) {
+    var g = s.birth ? gradeFromBirth(s.birth) : Number(s.grade);
+    var gradeStr = g ? g + '학년' : (s.grade ? s.grade + '학년' : '');
+    var birthStr = s.birth ? ' · ' + s.birth.slice(5).replace('-', '/') + ' 생일' : '';
+    return gradeStr + birthStr;
+  }
+
   function renderStudents() {
     const students = data.students || [];
     // Stats
@@ -2862,7 +3150,7 @@
           </div>
           <div class="stu-avatar ${avClass}">${icon}</div>
           <div class="stu-name">${s.name}</div>
-          <div class="stu-info">${s.grade}학년 ${s.class ? s.class+'반' : ''}</div>
+          <div class="stu-info">${calcGradeDisplay(s)}</div>
           ${s.note ? `<div class="stu-note">${s.note}</div>` : ''}
         </div>`;
       }).join('');
@@ -2881,17 +3169,65 @@
     const modal = document.getElementById('student-modal');
     document.getElementById('student-modal-title').textContent = student ? '학생 수정' : '학생 추가';
     document.getElementById('stu-name').value = student ? student.name : '';
-    document.getElementById('stu-grade').value = student ? student.grade : '1';
-    document.getElementById('stu-class').value = student ? (student.class || '') : '';
+    document.getElementById('stu-school').value = student ? (student.school || '') : '';
+    document.getElementById('stu-birth').value = student ? (student.birth || '') : '';
+    document.getElementById('stu-grade').value = student ? (student.grade || '1') : '1';
+    document.getElementById('stu-grade-auto').textContent = '';
+    if (student && student.birth) autoCalcGrade();
+    document.getElementById('stu-phone').value = student ? (student.phone || '') : '';
+    document.getElementById('stu-email').value = student ? (student.email || '') : '';
+    document.getElementById('stu-address').value = student ? (student.address || '') : '';
+    document.getElementById('stu-family').value = student ? (student.family || '') : '';
     document.getElementById('stu-note').value = student ? (student.note || '') : '';
     modal.dataset.editId = student ? student.id : '';
     openModal('student-modal');
   }
 
+  function gradeFromBirth(birthStr) {
+    if (!birthStr) return null;
+    var y = parseInt(birthStr.slice(0,4));
+    var g = new Date().getFullYear() - y - 12;
+    return (g >= 1 && g <= 3) ? g : null;
+  }
+
+  function autoCalcGrade() {
+    var birth = document.getElementById('stu-birth').value;
+    var g = gradeFromBirth(birth);
+    var sel = document.getElementById('stu-grade');
+    var label = document.getElementById('stu-grade-auto');
+    if (g) { sel.value = String(g); label.textContent = '(자동 계산됨)'; }
+    else { label.textContent = ''; }
+  }
+
+  function syncBirthdayToCalendar(student) {
+    if (!student.birth) return;
+    var mmdd = student.birth.slice(5); // MM-DD
+    var tag = 'birthday-' + student.id;
+    // remove old birthday event for this student
+    data.events = (data.events||[]).filter(function(e){ return e.birthdayTag !== tag; });
+    var thisYear = new Date().getFullYear();
+    var dateStr = thisYear + '-' + mmdd;
+    data.events.push({
+      id: Date.now() + Math.random(),
+      startDate: dateStr,
+      endDate: dateStr,
+      title: '🎂 ' + student.name + ' 생일',
+      color: 'pink',
+      recurring: 'yearly',
+      birthdayTag: tag
+    });
+  }
+
   function submitStudent() {
     const name = document.getElementById('stu-name').value.trim();
-    const grade = document.getElementById('stu-grade').value;
-    const cls = document.getElementById('stu-class').value.trim();
+    const school = document.getElementById('stu-school').value.trim();
+    const birth = document.getElementById('stu-birth').value;
+    const gradeAuto = gradeFromBirth(birth);
+    const grade = gradeAuto || Number(document.getElementById('stu-grade').value) || 1;
+    const phone = document.getElementById('stu-phone').value.trim();
+    const email = document.getElementById('stu-email').value.trim();
+    const address = document.getElementById('stu-address').value.trim();
+    const family = document.getElementById('stu-family').value.trim();
     const note = document.getElementById('stu-note').value.trim();
     if (!name) { showToast('이름을 입력해주세요.'); return; }
     const modal = document.getElementById('student-modal');
@@ -2901,7 +3237,8 @@
       if (idx >= 0) data.students[idx] = { id: editId, name, grade: Number(grade), class: cls, note };
     } else {
       if (!data.students) data.students = [];
-      data.students.push({ id: Date.now(), name, grade: Number(grade), class: cls, note });
+      data.students.push({ id: Date.now(), name, school, birth, grade: Number(grade), phone, email, address, family, note });
+      syncBirthdayToCalendar(data.students[data.students.length-1]);
     }
     saveData();
     closeModal('student-modal');
@@ -2919,6 +3256,106 @@
     data.students = (data.students||[]).filter(s => s.id !== id);
     saveData(); renderStudents();
     showToast('삭제되었습니다.');
+  }
+
+  // ---- EXCEL (STUDENTS) ----
+  function downloadStudentExcel() {
+    var students = data.students || [];
+    var headers = ['이름','학교','생년월일','학년','핸드폰번호','이메일','집주소','가족관계/보호자','메모'];
+    var rows = [headers];
+    students
+      .sort(function(a,b){ return Number(a.grade)-Number(b.grade)||(a.class||'').localeCompare(b.class||'')||a.name.localeCompare(b.name); })
+      .forEach(function(s){
+        var gradeNum = s.birth ? gradeFromBirth(s.birth) : Number(s.grade);
+        rows.push([
+          s.name, s.school||'', s.birth||'', gradeNum ? gradeNum+'학년' : (s.grade||''),
+          s.phone||'', s.email||'', s.address||'', s.family||'', s.note||''
+        ]);
+      });
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:10},{wch:14},{wch:12},{wch:8},{wch:16},{wch:20},{wch:30},{wch:35},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, ws, '학생부');
+    XLSX.writeFile(wb, '남현중등부_학생명단.xlsx');
+    showToast('엑셀 다운로드 완료!');
+  }
+
+  function uploadStudentExcel(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        var wb = XLSX.read(evt.target.result, { type: 'binary' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        var imported = 0;
+        rows.slice(1).forEach(function(row) {
+          if (!row[0]) return;
+          var name = String(row[0]).trim();
+          var school = String(row[1]||'').trim();
+          var birth = String(row[2]||'').trim();
+          var gradeStr = String(row[3]||'').replace('학년','').trim();
+          var gradeFromFile = parseInt(gradeStr) || null;
+          var grade = birth ? (gradeFromBirth(birth) || gradeFromFile || 1) : (gradeFromFile || 1);
+          var phone = String(row[4]||'').trim();
+          var email = String(row[5]||'').trim();
+          var address = String(row[6]||'').trim();
+          var family = String(row[7]||'').trim();
+          var note = String(row[8]||'').trim();
+          var existing = (data.students||[]).find(function(s){ return s.name === name; });
+          if (existing) {
+            existing.school = school; existing.birth = birth; existing.grade = grade;
+            existing.phone = phone; existing.email = email; existing.address = address;
+            existing.family = family; existing.note = note;
+            syncBirthdayToCalendar(existing);
+          } else {
+            if (!data.students) data.students = [];
+            var newS = { id: Date.now() + imported, name: name, school: school, birth: birth, grade: grade, phone: phone, email: email, address: address, family: family, note: note };
+            data.students.push(newS);
+            syncBirthdayToCalendar(newS);
+          }
+          imported++;
+        });
+        saveData();
+        renderStudents();
+        showToast(imported + '명 불러왔습니다.');
+      } catch(err) {
+        showToast('파일 오류: ' + err.message);
+      }
+      e.target.value = '';
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  // ---- PRINT WORSHIP ----
+  function printWorshipOrder() {
+    var dateEl = document.getElementById('worship-date-el');
+    var date = dateEl ? dateEl.textContent.trim() : data.worshipDate;
+    var rows = (data.worship || []).map(function(w) {
+      return '<tr class="' + (w.highlight ? 'highlight-row' : '') + '">' +
+        '<td>' + w.item + '</td><td>' + w.who + '</td></tr>';
+    }).join('');
+    var campaign = (data.worship ? '' : '');
+    var campaignEl = document.getElementById('worship-campaign-box');
+    var campaignHTML = '';
+    if (campaignEl) {
+      var items = campaignEl.querySelectorAll('li');
+      if (items.length) {
+        campaignHTML = '<div style="margin-top:20px;padding:14px;background:#eff6ff;border-radius:8px;">' +
+          '<div style="font-weight:700;font-size:0.82rem;margin-bottom:8px;color:var(--primary);">[ 중등부 예배 캠페인 ]</div><ol style="padding-left:18px;font-size:0.82rem;line-height:2;">';
+        items.forEach(function(li){ campaignHTML += '<li>' + li.textContent + '</li>'; });
+        campaignHTML += '</ol></div>';
+      }
+    }
+    document.getElementById('print-content').innerHTML =
+      '<div class="print-header">' +
+        '<h2>남현교회 중등부 예배 순서</h2>' +
+        '<p>' + date + ' · 비전홀</p>' +
+      '</div>' +
+      '<table class="print-order-table"><tbody>' + rows + '</tbody></table>' +
+      campaignHTML;
+    openModal('print-modal');
   }
 
   // ---- INIT ----
