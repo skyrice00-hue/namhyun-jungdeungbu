@@ -1364,7 +1364,20 @@
       .no-print { display: none !important; }
       body { background: white !important; }
     }
-    .print-order-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    /* Intro table vertical lines */
+    #intro-tables td, #intro-tables th,
+    #intro-student-table td, #intro-student-table th,
+    #intro-homeroom-table td, #intro-homeroom-table th {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    #intro-tables td:last-child, #intro-tables th:last-child,
+    #intro-student-table td:last-child, #intro-student-table th:last-child,
+    #intro-homeroom-table td:last-child, #intro-homeroom-table th:last-child {
+      border-right: none;
+    }
+
+        .print-order-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
     .print-order-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
     .print-order-table td:first-child { font-weight: 600; color: var(--primary); width: 36%; }
     .print-order-table tr.highlight-row td { background: #eff6ff; font-weight: 700; }
@@ -1520,7 +1533,7 @@
       <div class="worship-order-header">
         <span class="worship-date" id="worship-date-el" onblur="data.worshipDate=this.textContent;saveData()">2026. 6. 14</span>
         <span class="worship-title-badge">예배 순서</span>
-        <button onclick="printWorshipOrder()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);">🖨️ 인쇄</button>
+        <button onclick="printWorshipOrder()" style="margin-left:auto;background:#f1f5f9;border:1px solid #94a3b8;border-radius:6px;padding:5px 12px;font-size:0.82rem;cursor:pointer;color:#1e293b;font-weight:600;">🖨️ 인쇄</button>
       </div>
       <div class="worship-rows" id="worship-rows-container">
         <!-- rendered by JS -->
@@ -1609,7 +1622,7 @@
     </div>
     <p class="section-subtitle">중등부를 섬기는 분들을 소개합니다</p>
     <div id="intro-tables" style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:32px;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;border:1px solid var(--border);">
         <tr style="background:var(--primary);color:white;">
           <th colspan="4" style="padding:12px 20px;text-align:left;font-weight:700;">교역자 / 임원</th>
         </tr>
@@ -1647,7 +1660,7 @@
     <h2 class="section-title">학생 섬김이</h2>
     <p class="section-subtitle">중등부를 이끌어 가는 학생 리더들입니다</p>
     <div id="intro-student-table" style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:32px;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;border:1px solid var(--border);">
         <tr style="background:#16a34a;color:white;">
           <th colspan="4" style="padding:12px 20px;text-align:left;font-weight:700;">학생 리더</th>
         </tr>
@@ -1676,7 +1689,7 @@
     <h2 class="section-title">반 담임 선생님</h2>
     <p class="section-subtitle"></p>
     <div id="intro-homeroom-table" style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:32px;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;border:1px solid var(--border);">
         <tr style="background:#7c3aed;color:white;">
           <th colspan="2" style="padding:12px 20px;text-align:left;font-weight:700;">학년별 반 담임</th>
         </tr>
@@ -2202,8 +2215,10 @@
 
   function toggleAdmin() {
     if (adminMode) { exitAdmin(); return; }
+    if (window._checkAdminLock && window._checkAdminLock()) return;
     const pw = prompt('관리자 비밀번호를 입력하세요:');
     if (pw === ADMIN_PW) {
+      if (window._recordAdminAttempt) window._recordAdminAttempt(true);
       adminMode = true;
       document.body.classList.add('admin-mode');
       document.getElementById('admin-bar').classList.remove('hidden');
@@ -2305,6 +2320,46 @@
 
   // ---- LOCALSTORAGE ----
   const STORAGE_KEY = 'namhyun-jungdeungbu-v1';
+
+  // ── SECURITY: HTML escape to prevent XSS ──────────────────────────
+  function esc(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  }
+  // Rate limit: prevent brute force on admin password
+  (function() {
+    var attempts = parseInt(sessionStorage.getItem('_adminAttempts') || '0');
+    var lockUntil = parseInt(sessionStorage.getItem('_adminLock') || '0');
+    window._checkAdminLock = function() {
+      if (Date.now() < lockUntil) {
+        var secs = Math.ceil((lockUntil - Date.now()) / 1000);
+        showToast('잠시 후 다시 시도하세요. (' + secs + '초)');
+        return true;
+      }
+      return false;
+    };
+    window._recordAdminAttempt = function(success) {
+      if (success) {
+        sessionStorage.removeItem('_adminAttempts');
+        sessionStorage.removeItem('_adminLock');
+      } else {
+        attempts++;
+        sessionStorage.setItem('_adminAttempts', attempts);
+        if (attempts >= 5) {
+          var lock = Date.now() + 30000; // 30s lockout
+          sessionStorage.setItem('_adminLock', lock);
+          attempts = 0;
+          sessionStorage.setItem('_adminAttempts', '0');
+        }
+      }
+    };
+  })();
 
   function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -3346,15 +3401,21 @@
       .map(s => {
         const avClass = `stu-av-${s.grade}`;
         const icon = avatarIcons[(s.name.charCodeAt(0) || 0) % avatarIcons.length];
+        const gradeOnly = (() => { const g = s.birth ? gradeFromBirth(s.birth) : Number(s.grade); return g ? g+'학년' : (s.grade ? s.grade+'학년' : ''); })();
+        const adminDetail = adminMode ? `
+          ${s.school ? `<div class="stu-info" style="font-size:0.72rem;">🏫 ${s.school}</div>` : ''}
+          ${s.phone ? `<div class="stu-info" style="font-size:0.72rem;">📱 ${s.phone}</div>` : ''}
+          ${s.note ? `<div class="stu-note">${s.note}</div>` : ''}
+        ` : '';
         return `<div class="stu-card">
           <div class="stu-card-actions">
-            <nt(${s.id})">✏️</button>
+            <button onclick="editStudent(${s.id})">✏️</button>
             <button onclick="deleteStudent(${s.id})">🗑️</button>
           </div>
           <div class="stu-avatar ${avClass}">${icon}</div>
           <div class="stu-name">${s.name}</div>
-          <div class="stu-info">${calcGradeDisplay(s)}</div>
-          ${s.note ? `<div class="stu-note">${s.note}</div>` : ''}
+          <div class="stu-info">${gradeOnly}</div>
+          ${adminDetail}
         </div>`;
       }).join('');
   }
