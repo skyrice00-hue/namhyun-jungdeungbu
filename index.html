@@ -1357,7 +1357,63 @@
       .hero h1 { font-size: 1.35rem; }
     }
 
+    /* ── 주보 PRINT STYLES ──────────────────────── */
+    .jubo-paper {
+      background: white;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+      color: #1a1a2e;
+      position: relative;
+      overflow: hidden;
+    }
+    .jubo-a5 { width: 148mm; min-height: 210mm; padding: 14mm 12mm; }
+    .jubo-a4 { width: 210mm; min-height: 297mm; padding: 18mm 16mm; }
+    .jubo-a4-landscape { width: 297mm; min-height: 210mm; padding: 14mm 16mm; display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; }
+
+    .jubo-header { text-align: center; margin-bottom: 6mm; padding-bottom: 5mm; border-bottom: 2px solid #1e3a8a; }
+    .jubo-logo { width: 14mm; height: 14mm; border-radius: 3mm; object-fit: cover; margin: 0 auto 3mm; display: block; }
+    .jubo-church-name { font-size: 7pt; color: #1e3a8a; font-weight: 700; letter-spacing: 2px; margin-bottom: 1mm; }
+    .jubo-title { font-size: 13pt; font-weight: 900; color: #1a1a2e; margin-bottom: 1mm; }
+    .jubo-date { font-size: 8pt; color: #64748b; }
+    .jubo-cross { font-size: 18pt; color: #1e3a8a; margin-bottom: 2mm; display: block; }
+
+    .jubo-section-title {
+      font-size: 8pt; font-weight: 800; color: #1e3a8a;
+      border-left: 3px solid #1e3a8a; padding-left: 3mm;
+      margin: 5mm 0 2mm; letter-spacing: 1px;
+    }
+    .jubo-worship-table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+    .jubo-worship-table tr { border-bottom: 0.5px solid #e2e8f0; }
+    .jubo-worship-table td { padding: 1.5mm 2mm; font-size: 8.5pt; line-height: 1.5; }
+    .jubo-worship-table td:first-child { width: 36%; font-weight: 600; color: #1e3a8a; }
+    .jubo-worship-table tr.jubo-highlight td { background: #eff6ff; font-weight: 700; }
+    .jubo-worship-table tr.jubo-highlight td:first-child { color: #1d4ed8; }
+
+    .jubo-schedule-item { display: flex; gap: 3mm; font-size: 8pt; padding: 1.5mm 0; border-bottom: 0.5px solid #f1f5f9; }
+    .jubo-schedule-date { font-weight: 700; color: #1e3a8a; flex-shrink: 0; min-width: 20mm; }
+    .jubo-schedule-content { color: #374151; }
+
+    .jubo-campaign { background: #eff6ff; border-radius: 2mm; padding: 3mm 4mm; margin-top: 4mm; }
+    .jubo-campaign-title { font-size: 7.5pt; font-weight: 800; color: #1e3a8a; margin-bottom: 2mm; text-align: center; }
+    .jubo-campaign ol { padding-left: 5mm; margin: 0; }
+    .jubo-campaign li { font-size: 8pt; line-height: 1.8; color: #1e293b; }
+
+    .jubo-verse { background: linear-gradient(135deg,#1e3a8a,#2563eb); color: white; border-radius: 2mm; padding: 3mm 4mm; margin: 4mm 0; text-align: center; }
+    .jubo-verse-text { font-size: 8pt; line-height: 1.7; }
+    .jubo-verse-ref { font-size: 7pt; opacity: 0.8; margin-top: 1mm; }
+
+    .jubo-footer { margin-top: auto; padding-top: 4mm; border-top: 0.5px solid #e2e8f0; text-align: center; font-size: 7pt; color: #94a3b8; }
+
     @media print {
+      body * { visibility: hidden !important; }
+      #print-modal, #print-modal * { visibility: visible !important; }
+      #print-modal { position: fixed !important; inset: 0 !important; background: white !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+      .no-print { display: none !important; }
+      .jubo-paper { box-shadow: none !important; }
+      @page { margin: 0; }
+    }
+
+        @media print {
       nav, .admin-bar, .no-print, button, .modal-overlay:not(#print-modal) { display: none !important; }
       #print-modal { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
       #print-modal .modal { box-shadow: none !important; border: none !important; max-width: 100% !important; }
@@ -1533,7 +1589,7 @@
       <div class="worship-order-header">
         <span class="worship-date" id="worship-date-el" onblur="data.worshipDate=this.textContent;saveData()">2026. 6. 14</span>
         <span class="worship-title-badge">예배 순서</span>
-        <button onclick="printWorshipOrder()" style="margin-left:auto;background:#f1f5f9;border:1px solid #94a3b8;border-radius:6px;padding:5px 12px;font-size:0.82rem;cursor:pointer;color:#1e293b;font-weight:600;">🖨️ 인쇄</button>
+        <button onclick="printWorshipOrder()" style="margin-left:auto;background:#1e3a8a;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">🖨️ 주보 인쇄</button>
       </div>
       <div class="worship-rows" id="worship-rows-container">
         <!-- rendered by JS -->
@@ -2156,14 +2212,27 @@
 </div>
 
 <!-- Print Modal -->
-<div class="modal-overlay" id="print-modal" style="z-index:1000;">
-  <div class="modal" style="max-width:500px;padding:0;">
-    <div id="print-content" style="padding:32px;">
-      <!-- filled by JS -->
+<div class="modal-overlay" id="print-modal" style="z-index:1000;align-items:flex-start;padding-top:20px;">
+  <div class="modal" style="max-width:700px;padding:0;width:95vw;">
+    <!-- 컨트롤 바 -->
+    <div class="no-print" style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-weight:700;font-size:0.95rem;">🖨️ 주보 인쇄 미리보기</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+        <span style="font-size:0.82rem;color:var(--text-muted);">용지 크기:</span>
+        <select id="print-size-select" onchange="updatePrintSize()" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.82rem;">
+          <option value="a5">A5 (반절)</option>
+          <option value="a4">A4 (전체)</option>
+          <option value="a4-landscape">A4 가로 (접지형)</option>
+        </select>
+      </div>
+      <button class="btn-submit" style="margin:0;padding:7px 16px;" onclick="window.print()">🖨️ 인쇄</button>
+      <button class="btn-cancel" style="margin:0;" onclick="closeModal('print-modal')">닫기</button>
     </div>
-    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;" class="no-print">
-      <button class="btn-cancel" onclick="closeModal('print-modal')">닫기</button>
-      <button class="btn-submit" onclick="window.print()">🖨️ 인쇄</button>
+    <!-- 주보 미리보기 영역 -->
+    <div style="padding:24px;background:#e5e7eb;min-height:300px;display:flex;justify-content:center;overflow-y:auto;max-height:75vh;">
+      <div id="print-content" class="jubo-paper jubo-a5">
+        <!-- filled by JS -->
+      </div>
     </div>
   </div>
 </div>
@@ -3591,33 +3660,68 @@
   }
 
   // ---- PRINT WORSHIP ----
-  function printWorshipOrder() {
+  function buildJuboHTML() {
     var dateEl = document.getElementById('worship-date-el');
-    var date = dateEl ? dateEl.textContent.trim() : data.worshipDate;
-    var rows = (data.worship || []).map(function(w) {
-      return '<tr class="' + (w.highlight ? 'highlight-row' : '') + '">' +
-        '<td>' + w.item + '</td><td>' + w.who + '</td></tr>';
+    var date = dateEl ? dateEl.textContent.trim() : (data.worshipDate || '');
+    // Worship rows
+    var worshipRows = (data.worship || []).map(function(w) {
+      return '<tr class="' + (w.highlight ? 'jubo-highlight' : '') + '">' +
+        '<td>' + esc(w.item) + '</td><td>' + esc(w.who) + '</td></tr>';
     }).join('');
-    var campaign = (data.worship ? '' : '');
+    // Schedule
+    var scheduleHTML = (data.schedule || []).map(function(s) {
+      return '<div class="jubo-schedule-item">' +
+        '<span class="jubo-schedule-date">' + esc(s.date) + '</span>' +
+        '<span class="jubo-schedule-content">' + esc(s.content) + '</span>' +
+        '</div>';
+    }).join('');
+    // Campaign
     var campaignEl = document.getElementById('worship-campaign-box');
     var campaignHTML = '';
     if (campaignEl) {
       var items = campaignEl.querySelectorAll('li');
       if (items.length) {
-        campaignHTML = '<div style="margin-top:20px;padding:14px;background:#eff6ff;border-radius:8px;">' +
-          '<div style="font-weight:700;font-size:0.82rem;margin-bottom:8px;color:var(--primary);">[ 중등부 예배 캠페인 ]</div><ol style="padding-left:18px;font-size:0.82rem;line-height:2;">';
-        items.forEach(function(li){ campaignHTML += '<li>' + li.textContent + '</li>'; });
-        campaignHTML += '</ol></div>';
+        var liHTML = '';
+        items.forEach(function(li){ liHTML += '<li>' + li.textContent + '</li>'; });
+        campaignHTML = '<div class="jubo-campaign">' +
+          '<div class="jubo-campaign-title">[ 중등부 예배 캠페인 ]</div>' +
+          '<ol>' + liHTML + '</ol></div>';
       }
     }
-    document.getElementById('print-content').innerHTML =
-      '<div class="print-header">' +
-        '<h2>남현교회 중등부 예배 순서</h2>' +
-        '<p>' + date + ' · 비전홀</p>' +
+    // Verse (표어)
+    var verseHTML = '<div class="jubo-verse">' +
+      '<div class="jubo-verse-text">"사람이 마음으로 자기의 길을 계획할지라도<br>그의 걸음을 인도하시는 이는 여호와시니라"</div>' +
+      '<div class="jubo-verse-ref">잠언 16:9 · 2026 표어: 하나님과 함께 걷기</div>' +
+    '</div>';
+
+    var logoSrc = document.querySelector('.hero .hero-logo img') ? document.querySelector('.hero .hero-logo img').src : 'images/logo.png';
+
+    return '<div class="jubo-header">' +
+        '<img class="jubo-logo" src="' + logoSrc + '" alt="로고" />' +
+        '<div class="jubo-church-name">남현교회 중등부</div>' +
+        '<div class="jubo-title">주일 예배 순서</div>' +
+        '<div class="jubo-date">' + esc(date) + ' · 비전홀 · 오전 10:50</div>' +
       '</div>' +
-      '<table class="print-order-table"><tbody>' + rows + '</tbody></table>' +
-      campaignHTML;
+      verseHTML +
+      '<div class="jubo-section-title">예배 순서</div>' +
+      '<table class="jubo-worship-table"><tbody>' + worshipRows + '</tbody></table>' +
+      '<div class="jubo-section-title">이번 주 일정</div>' +
+      scheduleHTML +
+      campaignHTML +
+      '<div class="jubo-footer">남현교회 중등부 · 서울특별시 구로구</div>';
+  }
+
+  function printWorshipOrder() {
+    document.getElementById('print-content').innerHTML = buildJuboHTML();
     openModal('print-modal');
+  }
+
+  function updatePrintSize() {
+    var sel = document.getElementById('print-size-select');
+    var paper = document.getElementById('print-content');
+    if (!sel || !paper) return;
+    paper.className = 'jubo-paper jubo-' + sel.value;
+    paper.innerHTML = buildJuboHTML();
   }
 
   // ---- INIT ----
