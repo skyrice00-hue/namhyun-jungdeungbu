@@ -1433,6 +1433,16 @@
       @page { margin: 0; size: A4 landscape; }
     }
 
+    .admin-mode #new-jubo-btn { display:inline-flex !important; }
+
+    /* 주보 목록 패널 */
+    .jubo-list-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid #e5e7eb; font-size:0.8rem; }
+    .jubo-list-item:hover { background:#eff6ff; }
+    .jubo-list-item.active { background:#dbeafe; }
+    .jubo-list-item .jli-date { font-weight:700; color:#1e3a8a; }
+    .jubo-list-item .jli-del { font-size:0.72rem; color:#ef4444; margin-top:2px; display:none; cursor:pointer; }
+    .admin-mode .jubo-list-item .jli-del { display:block; }
+
     /* Intro table vertical lines */
     /* Intro table vertical lines */
     #intro-tables td, #intro-tables th,
@@ -1601,9 +1611,9 @@
     <!-- 예배 순서 -->
     <div class="worship-order-box">
       <div class="worship-order-header">
-        <span class="worship-date" id="worship-date-el" onblur="data.worshipDate=this.textContent;saveData()">2026. 6. 14</span>
+        <span class="worship-date" id="worship-date-el" onblur="var j=getLatestJubo();if(j){j.date=this.textContent;data.worshipDate=j.date;saveData();}">2026. 6. 14</span>
         <span class="worship-title-badge">예배 순서</span>
-        <button onclick="printWorshipOrder()" style="margin-left:auto;background:#1e3a8a;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">🖨️ 주보 인쇄</button>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center;"><button id="new-jubo-btn" onclick="createNewJubo()" style="display:none;background:#10b981;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">+ 새 주보</button><button onclick="printWorshipOrder()" style="background:#1e3a8a;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">🖨️ 주보 인쇄</button></div>
       </div>
       <div class="worship-rows" id="worship-rows-container">
         <!-- rendered by JS -->
@@ -1621,6 +1631,12 @@
           <li>예배는 공과 공부까지!</li>
           <li>예배시간에 핸드폰 No! No! No!</li>
         </ol>
+      </div>
+      <!-- 이전 주보 보기 버튼 -->
+      <div style="border-top:1px solid var(--border);padding:10px 20px;text-align:right;">
+        <button onclick="openJuboArchive()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 14px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.2s;" onmouseover="this.style.borderColor='#1e3a8a';this.style.color='#1e3a8a'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          📋 이전 주보 보기
+        </button>
       </div>
     </div>
 
@@ -2225,9 +2241,38 @@
   </div>
 </div>
 
+<!-- 주보 아카이브 모달 -->
+<div class="modal-overlay" id="jubo-archive-modal">
+  <div class="modal" style="max-width:620px;width:95vw;padding:0;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1rem;">📋 주보 목록</span>
+      <button class="btn-cancel" style="margin:0;padding:6px 14px;" onclick="closeModal('jubo-archive-modal')">닫기</button>
+    </div>
+    <div id="jubo-archive-list" style="max-height:70vh;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <!-- JS로 렌더 -->
+    </div>
+  </div>
+</div>
+
+<!-- 주보 뷰어 모달 -->
+<div class="modal-overlay" id="jubo-viewer-modal" style="z-index:1001;">
+  <div class="modal" style="max-width:960px;width:96vw;padding:0;">
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span id="jubo-viewer-title" style="font-weight:700;font-size:0.95rem;"></span>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button onclick="printSelectedJubo()" style="background:#1e3a8a;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨️ 인쇄</button>
+        <button class="btn-cancel" style="margin:0;" onclick="closeModal('jubo-viewer-modal')">닫기</button>
+      </div>
+    </div>
+    <div style="padding:20px;background:#e5e7eb;display:flex;justify-content:center;overflow-y:auto;max-height:80vh;">
+      <div id="jubo-viewer-content" class="jubo-paper jubo-a4-landscape"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Print Modal -->
 <div class="modal-overlay" id="print-modal" style="z-index:1000;align-items:flex-start;padding-top:20px;">
-  <div class="modal" style="max-width:700px;padding:0;width:95vw;">
+  <div class="modal" style="max-width:1000px;padding:0;width:96vw;">
     <!-- 컨트롤 바 -->
     <div class="no-print" style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-weight:700;font-size:0.95rem;">🖨️ 주보 인쇄 미리보기</span>
@@ -2242,10 +2287,15 @@
       <button class="btn-submit" style="margin:0;padding:7px 16px;" onclick="window.print()">🖨️ 인쇄</button>
       <button class="btn-cancel" style="margin:0;" onclick="closeModal('print-modal')">닫기</button>
     </div>
-    <!-- 주보 미리보기 영역 -->
-    <div style="padding:24px;background:#e5e7eb;min-height:300px;display:flex;justify-content:center;overflow-y:auto;max-height:75vh;">
-      <div id="print-content" class="jubo-paper jubo-a4-landscape">
-        <!-- filled by JS -->
+    <!-- 주보 목록 + 미리보기 -->
+    <div style="display:flex;max-height:80vh;overflow:hidden;">
+      <div id="jubo-list-panel" class="no-print" style="width:155px;border-right:1px solid var(--border);overflow-y:auto;background:#f8fafc;flex-shrink:0;">
+        <div style="padding:8px 12px;font-size:0.75rem;font-weight:700;color:#64748b;border-bottom:1px solid var(--border);">📋 주보 목록</div>
+      </div>
+      <div style="flex:1;padding:20px;background:#e5e7eb;overflow-y:auto;display:flex;justify-content:center;min-height:300px;">
+        <div id="print-content" class="jubo-paper jubo-a4-landscape">
+          <!-- filled by JS -->
+        </div>
       </div>
     </div>
   </div>
@@ -2531,6 +2581,16 @@
           data.events.push({ id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' });
         }
         if (!data.students) data.students = [];
+        if (!data.jubos) data.jubos = [];
+        // worship → jubos 마이그레이션 (최초 1회)
+        if (data.jubos.length === 0 && data.worship && data.worship.length > 0) {
+          data.jubos.push({
+            id: 1749859200000,
+            date: data.worshipDate || '2026. 6. 14',
+            worship: JSON.parse(JSON.stringify(data.worship)),
+            schedule: JSON.parse(JSON.stringify(data.schedule || []))
+          });
+        }
   }
 
   // ---- DATA ----
@@ -2594,7 +2654,8 @@
       { id: 5, startDate: '2026-07-29', endDate: '2026-07-31', title: '여름 수련회 🏕️ — 가평 오름비전빌리지', color: 'purple' },
       { id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' },
     ],
-    students: []
+    students: [],
+    jubos: []
   };
 
 
@@ -3053,10 +3114,9 @@
 
   // ---- WORSHIP ORDER INLINE EDIT ----
   function saveWorshipOrder() {
-    // 날짜도 저장
-    const dateEl = document.getElementById('worship-date-el');
-    if (dateEl) data.worshipDate = dateEl.textContent.trim();
-    // 행사일정도 함께 저장
+    var dateEl = document.getElementById('worship-date-el');
+    var jubo = getLatestJubo();
+    if (jubo && dateEl) { jubo.date = dateEl.textContent.trim(); data.worshipDate = jubo.date; }
     saveData();
     showToast('저장되었습니다 ✓');
   }
@@ -3090,44 +3150,50 @@
 
   // ---- WORSHIP ORDER RENDER ----
   function renderWorshipOrder() {
+    var jubo = getLatestJubo();
+    if (!jubo) jubo = { worship: [], date: '' };
+    window._editingJubo = jubo;
+    var worship = jubo.worship;
+
     const container = document.getElementById('worship-rows-container');
     if (!container) return;
 
     if (adminMode) {
-      container.innerHTML = data.worship.map((row, i) => `
+      container.innerHTML = worship.map((row, i) => `
         <div class="worship-row ${row.highlight ? 'highlight' : ''}" style="gap:8px;flex-wrap:wrap;">
           <input value="${row.item}" placeholder="순서 항목"
             style="width:120px;padding:5px 8px;border:1px solid var(--primary);border-radius:6px;font-size:0.84rem;font-weight:600;"
-            oninput="data.worship[${i}].item=this.value" />
+            oninput="window._editingJubo.worship[${i}].item=this.value" />
           <input value="${row.who}" placeholder="담당자/내용"
             style="flex:1;min-width:160px;padding:5px 8px;border:1px solid var(--primary);border-radius:6px;font-size:0.84rem;"
-            oninput="data.worship[${i}].who=this.value" />
+            oninput="window._editingJubo.worship[${i}].who=this.value" />
           <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-muted);cursor:pointer;">
-            <input type="checkbox" ${row.highlight?'checked':''} onchange="data.worship[${i}].highlight=this.checked;renderWorshipOrder()" />
+            <input type="checkbox" ${row.highlight?'checked':''} onchange="window._editingJubo.worship[${i}].highlight=this.checked;renderWorshipOrder()" />
             강조
           </label>
           <button class="btn-delete" onclick="deleteWorshipRow(${i})" style="padding:4px 10px;flex-shrink:0;">🗑</button>
         </div>`).join('');
     } else {
-      container.innerHTML = data.worship.map((row) => `
+      container.innerHTML = worship.map((row) => `
         <div class="worship-row ${row.highlight ? 'highlight' : ''}">
           <span class="wr-item">${row.item}</span>
           <span class="wr-who">${row.who}</span>
         </div>`).join('');
     }
 
-    // 저장 / 추가 버튼
-    const saveBtn = document.getElementById('worship-save-btn-wrap');
-    if (saveBtn) saveBtn.style.display = adminMode ? 'flex' : 'none';
-
-    // 날짜 편집
+    // 날짜 표시 업데이트
     const dateEl = document.getElementById('worship-date-el');
     if (dateEl) {
+      if (!adminMode) dateEl.textContent = jubo.date || data.worshipDate || '';
       dateEl.contentEditable = adminMode ? 'true' : 'false';
       dateEl.style.cssText = adminMode
         ? 'outline:1.5px dashed rgba(255,255,255,0.7);border-radius:4px;padding:2px 6px;cursor:text;'
         : '';
     }
+
+    // 저장 / 추가 버튼
+    const saveBtn = document.getElementById('worship-save-btn-wrap');
+    if (saveBtn) saveBtn.style.display = adminMode ? 'flex' : 'none';
   }
 
   // ---- SCHEDULE RENDER ----
@@ -3175,12 +3241,13 @@
 
   function deleteWorshipRow(i) {
     if (!confirm('이 순서를 삭제할까요?')) return;
-    data.worship.splice(i, 1);
+    var jubo = getLatestJubo(); if (jubo) jubo.worship.splice(i, 1);
     saveData(); renderWorshipOrder();
   }
 
   function addWorshipRow() {
-    data.worship.push({ item: '새 순서', who: '', highlight: false });
+    var jubo = getLatestJubo(); if (!jubo) return;
+    jubo.worship.push({ item: '새 순서', who: '', highlight: false });
     saveData(); renderWorshipOrder();
     // 마지막 행 item input에 포커스
     setTimeout(() => {
@@ -3674,15 +3741,17 @@
   }
 
   // ---- PRINT WORSHIP ----
-  function buildJuboHTML() {
-    var dateEl = document.getElementById('worship-date-el');
-    var date = dateEl ? dateEl.textContent.trim() : (data.worshipDate || '');
+  function buildJuboHTML(juboId) {
+    var jubo = null;
+    if (juboId) jubo = (data.jubos||[]).find(function(j){return j.id===juboId;});
+    if (!jubo) jubo = getLatestJubo();
+    var date = jubo ? jubo.date : (data.worshipDate || '');
     var logoSrc = 'images/logo.png';
     var logoEl = document.querySelector('.hero .hero-logo img') || document.querySelector('.nav-logo img');
     if (logoEl) logoSrc = logoEl.src;
 
     // 예배순서 rows
-    var worshipRows = (data.worship || []).map(function(w) {
+    var worshipRows = ((jubo && jubo.worship) || data.worship || []).map(function(w) {
       var hi = w.highlight ? ' jw-highlight' : '';
       return '<tr class="' + hi + '">' +
         '<td class="jw-item">' + esc(w.item) + '</td>' +
@@ -3764,8 +3833,149 @@
     }
   }
 
+
+
+  // ── 주보 아카이브 뷰어 ────────────────────────────────────
+  function openJuboArchive() {
+    renderJuboArchiveList();
+    openModal('jubo-archive-modal');
+  }
+
+  function renderJuboArchiveList() {
+    var list = document.getElementById('jubo-archive-list');
+    if (!list) return;
+    var jubos = (data.jubos||[]).slice().sort(function(a,b){return (b.id||0)-(a.id||0);});
+    if (!jubos.length) {
+      list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">저장된 주보가 없습니다.<br>관리자 모드에서 주보를 작성해주세요.</p>';
+      return;
+    }
+    var latestId = jubos[0].id;
+    list.innerHTML = jubos.map(function(j) {
+      var isLatest = j.id === latestId;
+      var previewItems = (j.worship||[]).filter(function(w){return w.highlight;}).map(function(w){return w.who;}).join(' · ');
+      return '<div onclick="viewJubo('+j.id+')" style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:14px;">' +
+        '<div style="background:#1e3a8a;color:white;border-radius:8px;padding:8px 14px;text-align:center;flex-shrink:0;">' +
+          '<div style="font-size:1.1rem;font-weight:900;">'+esc(j.date)+'</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          (isLatest ? '<span style="font-size:0.72rem;background:#dcfce7;color:#16a34a;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:4px;display:inline-block;">최신 주보</span>' : '') +
+          (previewItems ? '<div style="font-size:0.85rem;color:#374151;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(previewItems)+'</div>' : '') +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">예배순서 '+((j.worship||[]).length)+'항목</div>' +
+        '</div>' +
+        '<div style="color:#94a3b8;font-size:1.2rem;">›</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function viewJubo(id) {
+    window._viewingJuboId = id;
+    var jubo = (data.jubos||[]).find(function(j){return j.id===id;});
+    if (!jubo) return;
+    var titleEl = document.getElementById('jubo-viewer-title');
+    if (titleEl) titleEl.textContent = jubo.date + ' 예배 순서';
+    var content = document.getElementById('jubo-viewer-content');
+    if (content) content.innerHTML = buildJuboHTML(id);
+    openModal('jubo-viewer-modal');
+  }
+
+  function printSelectedJubo() {
+    window._printJuboId = window._viewingJuboId;
+    var paper = document.getElementById('print-content');
+    if (paper) paper.innerHTML = buildJuboHTML(window._printJuboId);
+    renderJuboList();
+    closeModal('jubo-viewer-modal');
+    closeModal('jubo-archive-modal');
+    openModal('print-modal');
+  }
+
+  // ── 주보 아카이브 함수들 ────────────────────────────────────
+  function getLatestJubo() {
+    if (!data.jubos || !data.jubos.length) return null;
+    return data.jubos.reduce(function(a,b){ return (a.id||0)>(b.id||0)?a:b; });
+  }
+
+  function createNewJubo() {
+    if (!adminMode) return;
+    var dateStr = prompt('새 주보 날짜를 입력하세요\n예: 2026. 6. 21');
+    if (!dateStr || !dateStr.trim()) return;
+    if (!data.jubos) data.jubos = [];
+    var newJubo = {
+      id: Date.now(),
+      date: dateStr.trim(),
+      worship: [
+        { item: '사도신경', who: '다 같이', highlight: false },
+        { item: '경배와 찬양', who: '찬양팀', highlight: false },
+        { item: '대표기도', who: '', highlight: false },
+        { item: '성경봉독', who: '', highlight: false },
+        { item: '설교', who: '', highlight: true },
+        { item: '결단의 시간', who: '', highlight: true },
+        { item: '헌금 & 헌금기도', who: '', highlight: false },
+        { item: '광고', who: '', highlight: false },
+        { item: '축도', who: '유동균 목사', highlight: false },
+        { item: '반 모임', who: '각 반별', highlight: false },
+        { item: '다음주 헌금기도자', who: '', highlight: false }
+      ],
+      schedule: []
+    };
+    data.jubos.push(newJubo);
+    data.worshipDate = newJubo.date;
+    saveData();
+    renderWorshipOrder();
+    showToast('새 주보가 생성되었습니다 (' + newJubo.date + ') ✓');
+  }
+
+  function selectJuboForPrint(id) {
+    window._printJuboId = id;
+    var sel = document.getElementById('print-size-select');
+    var paper = document.getElementById('print-content');
+    if (paper) {
+      paper.className = 'jubo-paper jubo-' + (sel ? sel.value : 'a4-landscape');
+      paper.innerHTML = buildJuboHTML(id);
+    }
+    renderJuboList();
+  }
+
+  function deleteJubo(id, e) {
+    if (e) e.stopPropagation();
+    if (!adminMode) return;
+    if (!confirm('이 주보를 삭제할까요?')) return;
+    data.jubos = (data.jubos||[]).filter(function(j){return j.id!==id;});
+    if (window._printJuboId === id) {
+      var latest = getLatestJubo();
+      window._printJuboId = latest ? latest.id : null;
+      var paper = document.getElementById('print-content');
+      if (paper) paper.innerHTML = buildJuboHTML(window._printJuboId);
+    }
+    saveData();
+    renderJuboList();
+    renderWorshipOrder();
+    showToast('주보가 삭제되었습니다');
+  }
+
+  function renderJuboList() {
+    var panel = document.getElementById('jubo-list-panel');
+    if (!panel) return;
+    var jubos = (data.jubos||[]).slice().sort(function(a,b){return (b.id||0)-(a.id||0);});
+    var activePrintId = window._printJuboId;
+    var latestId = jubos.length ? jubos[0].id : null;
+    var listHTML = jubos.map(function(j) {
+      var isActive = j.id === activePrintId;
+      var isLatest = j.id === latestId;
+      return '<div class="jubo-list-item'+(isActive?' active':'')+'" onclick="selectJuboForPrint('+j.id+')">' +
+        '<div class="jli-date">'+esc(j.date)+'</div>' +
+        (isLatest ? '<div style="font-size:0.7rem;color:#10b981;font-weight:600;">현재</div>' : '') +
+        '<div class="jli-del" onclick="deleteJubo('+j.id+',event)">🗑 삭제</div>' +
+        '</div>';
+    }).join('');
+    if (!listHTML) listHTML = '<div style="padding:12px;font-size:0.78rem;color:#94a3b8;">주보 없음</div>';
+    panel.innerHTML = '<div style="padding:8px 12px;font-size:0.75rem;font-weight:700;color:#64748b;border-bottom:1px solid var(--border);">📋 주보 목록</div>' + listHTML;
+  }
+
   function printWorshipOrder() {
-    document.getElementById('print-content').innerHTML = buildJuboHTML();
+    var jubo = getLatestJubo();
+    window._printJuboId = jubo ? jubo.id : null;
+    document.getElementById('print-content').innerHTML = buildJuboHTML(window._printJuboId);
+    renderJuboList();
     openModal('print-modal');
   }
 
@@ -3774,7 +3984,7 @@
     var paper = document.getElementById('print-content');
     if (!sel || !paper) return;
     paper.className = 'jubo-paper jubo-' + sel.value;
-    paper.innerHTML = buildJuboHTML();
+    paper.innerHTML = buildJuboHTML(window._printJuboId);
   }
 
   // ---- INIT ----
@@ -3785,4 +3995,4 @@
   renderHomeNotices();
 </script>
 </body>
-</html>
+</html>                                 
