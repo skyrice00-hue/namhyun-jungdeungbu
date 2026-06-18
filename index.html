@@ -386,6 +386,26 @@
       transform: translateY(-3px);
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     }
+    .gallery-item.dragging {
+      opacity: 0.4;
+      transform: scale(0.97);
+      box-shadow: none;
+    }
+    .gallery-item.drag-over {
+      outline: 2.5px dashed #1e3a8a;
+      outline-offset: 3px;
+      background: #eff6ff;
+    }
+    .admin-mode .gallery-item[draggable="true"] { cursor: grab; }
+    .admin-mode .gallery-item[draggable="true"]:active { cursor: grabbing; }
+    .gallery-drag-hint {
+      display: none;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 6px 0 2px;
+    }
+    .admin-mode .gallery-drag-hint { display: block; }
     .gallery-thumb {
       width: 100%;
       aspect-ratio: 4/3;
@@ -1852,6 +1872,7 @@
   <div class="section">
     <button class="add-btn" onclick="openAddGallery()">+ 앨범 추가</button>
     <input type="file" id="gallery-img-file-input" accept="image/*" multiple style="display:none;" onchange="handleAlbumPhotosUpload(event)" />
+    <p class="gallery-drag-hint" id="gallery-drag-hint">✥ 관리자 모드: 카드를 드래그해서 순서를 변경할 수 있어요</p>
     <div class="gallery-grid" id="gallery-grid"></div>
 
     <!-- 말씀 암송카드 섹션 -->
@@ -2241,6 +2262,28 @@
   </div>
 </div>
 
+<!-- 새 주보 작성 모달 -->
+<div class="modal-overlay" id="new-jubo-modal">
+  <div class="modal" style="max-width:380px;padding:28px 28px 24px;">
+    <h3 style="margin:0 0 20px;font-size:1.05rem;color:var(--primary);">📝 새 주보 작성</h3>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:0.82rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">날짜 선택</label>
+      <input type="date" id="new-jubo-date-picker"
+        style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;box-sizing:border-box;"
+        oninput="syncNewJuboDate(this.value)" />
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:0.82rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">표시 형식 (직접 수정 가능)</label>
+      <input type="text" id="new-jubo-date-text" placeholder="예: 2026. 6. 21"
+        style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-cancel" style="flex:1;margin:0;" onclick="closeModal('new-jubo-modal')">취소</button>
+      <button class="btn-submit" style="flex:2;margin:0;" onclick="confirmCreateNewJubo()">✓ 새 주보 생성</button>
+    </div>
+  </div>
+</div>
+
 <!-- 주보 아카이브 모달 -->
 <div class="modal-overlay" id="jubo-archive-modal">
   <div class="modal" style="max-width:620px;width:95vw;padding:0;">
@@ -2256,15 +2299,20 @@
 
 <!-- 주보 뷰어 모달 -->
 <div class="modal-overlay" id="jubo-viewer-modal" style="z-index:1001;">
-  <div class="modal" style="max-width:960px;width:96vw;padding:0;">
+  <div class="modal" style="max-width:980px;width:96vw;padding:0;">
     <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span id="jubo-viewer-title" style="font-weight:700;font-size:0.95rem;"></span>
-      <div style="margin-left:auto;display:flex;gap:8px;">
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <select id="viewer-size-select" onchange="changeViewerSize()" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.8rem;">
+          <option value="a4-landscape">A4 가로 (접지형)</option>
+          <option value="a5">A5 (반절)</option>
+          <option value="a4">A4 (전체)</option>
+        </select>
         <button onclick="printSelectedJubo()" style="background:#1e3a8a;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨️ 인쇄</button>
         <button class="btn-cancel" style="margin:0;" onclick="closeModal('jubo-viewer-modal')">닫기</button>
       </div>
     </div>
-    <div style="padding:20px;background:#e5e7eb;display:flex;justify-content:center;overflow-y:auto;max-height:80vh;">
+    <div id="jubo-viewer-wrap" style="padding:20px;background:#e5e7eb;display:flex;justify-content:center;overflow-y:auto;max-height:80vh;">
       <div id="jubo-viewer-content" class="jubo-paper jubo-a4-landscape"></div>
     </div>
   </div>
@@ -2742,7 +2790,14 @@
         ? `<img src="${photos[0].data}" alt="${g.title}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;" />`
         : `<div class="gallery-thumb ${g.color || ''}" style="font-size:2.8rem;display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;">${g.icon || '🖼️'}</div>`;
       const countBadge = photos.length > 0 ? `<span class="gallery-photo-count">📷 ${photos.length}</span>` : '';
-      return `<div class="gallery-item" onclick="openAlbum(${g.id})">
+      const draggable = adminMode ? 'draggable="true"' : '';
+      return `<div class="gallery-item" ${draggable} data-id="${g.id}"
+        onclick="openAlbum(${g.id})"
+        ondragstart="galleryDragStart(event,${g.id})"
+        ondragover="galleryDragOver(event)"
+        ondragleave="galleryDragLeave(event)"
+        ondrop="galleryDrop(event,${g.id})"
+        ondragend="galleryDragEnd(event)">
         ${thumbHTML}
         ${countBadge}
         <div class="gallery-item-info">
@@ -2759,6 +2814,55 @@
         <span class="plus">+</span>
         <span>앨범 추가</span>
       </div>` : '');
+  }
+
+  // ── 갤러리 드래그 앤 드롭 ──────────────────────────────────
+  let _dragGalleryId = null;
+
+  function galleryDragStart(e, id) {
+    if (!adminMode) { e.preventDefault(); return; }
+    _dragGalleryId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(function() {
+      var el = document.querySelector('.gallery-item[data-id="'+id+'"]');
+      if (el) el.classList.add('dragging');
+    }, 0);
+  }
+
+  function galleryDragOver(e) {
+    if (!adminMode || _dragGalleryId === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var target = e.currentTarget;
+    if (target.classList.contains('gallery-item')) {
+      document.querySelectorAll('.gallery-item.drag-over').forEach(function(el){ el.classList.remove('drag-over'); });
+      target.classList.add('drag-over');
+    }
+  }
+
+  function galleryDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+
+  function galleryDrop(e, targetId) {
+    if (!adminMode) return;
+    e.preventDefault();
+    if (_dragGalleryId === null || _dragGalleryId === targetId) return;
+    var fromIdx = data.gallery.findIndex(function(g){ return g.id === _dragGalleryId; });
+    var toIdx   = data.gallery.findIndex(function(g){ return g.id === targetId; });
+    if (fromIdx === -1 || toIdx === -1) return;
+    var moved = data.gallery.splice(fromIdx, 1)[0];
+    data.gallery.splice(toIdx, 0, moved);
+    saveData();
+    renderGallery();
+    showToast('순서가 변경되었습니다 ✓');
+  }
+
+  function galleryDragEnd(e) {
+    _dragGalleryId = null;
+    document.querySelectorAll('.gallery-item').forEach(function(el){
+      el.classList.remove('dragging','drag-over');
+    });
   }
 
   // ---- LIGHTBOX ----
@@ -3873,9 +3977,45 @@
     if (!jubo) return;
     var titleEl = document.getElementById('jubo-viewer-title');
     if (titleEl) titleEl.textContent = jubo.date + ' 예배 순서';
+    var sel = document.getElementById('viewer-size-select');
+    var size = sel ? sel.value : 'a4-landscape';
     var content = document.getElementById('jubo-viewer-content');
-    if (content) content.innerHTML = buildJuboHTML(id);
+    if (content) {
+      content.className = 'jubo-paper jubo-' + size;
+      content.style.transform = '';
+      content.style.marginBottom = '';
+      content.innerHTML = buildJuboHTML(id);
+    }
     openModal('jubo-viewer-modal');
+    setTimeout(function(){ scaleJuboViewer(); }, 80);
+  }
+
+  function changeViewerSize() {
+    var sel = document.getElementById('viewer-size-select');
+    var content = document.getElementById('jubo-viewer-content');
+    if (!content || !sel) return;
+    content.className = 'jubo-paper jubo-' + sel.value;
+    content.style.transform = '';
+    content.style.marginBottom = '';
+    content.innerHTML = buildJuboHTML(window._viewingJuboId);
+    setTimeout(function(){ scaleJuboViewer(); }, 80);
+  }
+
+  function scaleJuboViewer() {
+    var content = document.getElementById('jubo-viewer-content');
+    var wrap = document.getElementById('jubo-viewer-wrap');
+    if (!content || !wrap) return;
+    content.style.transform = '';
+    content.style.marginBottom = '';
+    var wrapW = wrap.clientWidth - 40;
+    var paperW = content.scrollWidth;
+    if (paperW > wrapW && wrapW > 0) {
+      var scale = wrapW / paperW;
+      var paperH = content.scrollHeight;
+      content.style.transformOrigin = 'top center';
+      content.style.transform = 'scale(' + scale + ')';
+      content.style.marginBottom = '-' + (paperH * (1 - scale)) + 'px';
+    }
   }
 
   function printSelectedJubo() {
@@ -3896,12 +4036,38 @@
 
   function createNewJubo() {
     if (!adminMode) return;
-    var dateStr = prompt('새 주보 날짜를 입력하세요\n예: 2026. 6. 21');
-    if (!dateStr || !dateStr.trim()) return;
+    // 기본값: 다음 주일
+    var today = new Date();
+    var daysUntilSunday = (7 - today.getDay()) % 7 || 7;
+    var nextSunday = new Date(today);
+    nextSunday.setDate(today.getDate() + daysUntilSunday);
+    var yyyy = nextSunday.getFullYear();
+    var mm = nextSunday.getMonth() + 1;
+    var dd = nextSunday.getDate();
+    var pickerVal = yyyy + '-' + String(mm).padStart(2,'0') + '-' + String(dd).padStart(2,'0');
+    var textVal = yyyy + '. ' + mm + '. ' + dd;
+    var picker = document.getElementById('new-jubo-date-picker');
+    var textEl = document.getElementById('new-jubo-date-text');
+    if (picker) picker.value = pickerVal;
+    if (textEl) textEl.value = textVal;
+    openModal('new-jubo-modal');
+  }
+
+  function syncNewJuboDate(val) {
+    if (!val) return;
+    var parts = val.split('-');
+    var textEl = document.getElementById('new-jubo-date-text');
+    if (textEl) textEl.value = parts[0] + '. ' + parseInt(parts[1]) + '. ' + parseInt(parts[2]);
+  }
+
+  function confirmCreateNewJubo() {
+    var textEl = document.getElementById('new-jubo-date-text');
+    var dateStr = textEl ? textEl.value.trim() : '';
+    if (!dateStr) { showToast('날짜를 입력해주세요'); return; }
     if (!data.jubos) data.jubos = [];
     var newJubo = {
       id: Date.now(),
-      date: dateStr.trim(),
+      date: dateStr,
       worship: [
         { item: '사도신경', who: '다 같이', highlight: false },
         { item: '경배와 찬양', who: '찬양팀', highlight: false },
@@ -3920,8 +4086,9 @@
     data.jubos.push(newJubo);
     data.worshipDate = newJubo.date;
     saveData();
+    closeModal('new-jubo-modal');
     renderWorshipOrder();
-    showToast('새 주보가 생성되었습니다 (' + newJubo.date + ') ✓');
+    showToast('새 주보 생성 (' + dateStr + ') ✓');
   }
 
   function selectJuboForPrint(id) {
@@ -3995,4 +4162,4 @@
   renderHomeNotices();
 </script>
 </body>
-</html>                                 
+</html>                                                                                                                                                                                                                      
