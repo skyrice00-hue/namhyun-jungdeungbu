@@ -2447,8 +2447,7 @@
         if (!data.events.find(e => e.recurring === 'weekly-friday')) {
           data.events.push({ id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' });
         }
-      } catch(e) {}
-    }
+        if (!data.students) data.students = [];
   }
 
   // ---- DATA ----
@@ -2512,9 +2511,8 @@
       { id: 5, startDate: '2026-07-29', endDate: '2026-07-31', title: '여름 수련회 🏕️ — 가평 오름비전빌리지', color: 'purple' },
       { id: 6, startDate: '2026-06-19', endDate: '2026-12-25', title: '닛시 모임 (고척중 성경탐구 동아리)', color: 'green', recurring: 'weekly-friday' },
     ],
-    students: data.students || [];
-    if (!Array.isArray(data.students)) data.students = [];
-  }
+    students: []
+  };
 
 
 
