@@ -4154,6 +4154,19 @@
     paper.innerHTML = buildJuboHTML(window._printJuboId);
   }
 
+  // ---- RENDER ALL ----
+  function renderAll() {
+    renderWorshipOrder();
+    renderSchedule();
+    renderHomeNotices();
+    renderGallery();
+    renderStudents();
+    renderCalendar();
+    renderQT();
+    renderNotices();
+    loadEditableSections();
+  }
+
   // ---- INIT ----
   loadData();
   loadEditableSections();
