@@ -744,6 +744,64 @@
     }
     .gallery-item { position: relative; cursor: pointer; }
     /* Lightbox */
+    /* 앨범 그리드 모달 */
+    .album-grid-overlay {
+      display: none; position: fixed; inset: 0; z-index: 450;
+      background: rgba(0,0,0,0.6);
+      align-items: flex-start; justify-content: center;
+      padding: 20px 0; overflow-y: auto;
+    }
+    .album-grid-overlay.open { display: flex; }
+    .album-grid-box {
+      background: white; border-radius: 16px;
+      width: 95vw; max-width: 900px;
+      overflow: hidden; margin: auto;
+    }
+    .album-grid-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .album-grid-header-info { flex: 1; }
+    .album-grid-title { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+    .album-grid-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .album-grid-close {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 14px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);
+    }
+    .album-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 4px; padding: 4px;
+    }
+    .album-photo-cell {
+      aspect-ratio: 1; overflow: hidden; cursor: pointer; position: relative;
+      background: #f1f5f9;
+    }
+    .album-photo-cell img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.2s;
+    }
+    .album-photo-cell:hover img { transform: scale(1.06); }
+    .album-photo-cell .photo-del-btn {
+      display: none; position: absolute; top: 6px; right: 6px;
+      background: rgba(239,68,68,0.85); color: white; border: none;
+      border-radius: 50%; width: 26px; height: 26px; font-size: 0.75rem;
+      cursor: pointer; align-items: center; justify-content: center;
+    }
+    .admin-mode .album-photo-cell:hover .photo-del-btn { display: flex; }
+    .album-grid-add-btn {
+      aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border: 2px dashed var(--border); border-radius: 4px;
+      cursor: pointer; color: var(--text-muted); font-size: 0.82rem; gap: 6px;
+      background: #f8fafc; transition: border-color 0.2s;
+    }
+    .album-grid-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .album-grid-add-btn span.plus { font-size: 1.8rem; line-height: 1; }
+    .album-grid-empty {
+      padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.9rem;
+    }
+
     .lightbox-overlay {
       display: none; position: fixed; inset: 0; z-index: 500;
       background: rgba(0,0,0,0.92);
@@ -2350,6 +2408,21 @@
 </div>
 
 <!-- Lightbox -->
+<!-- 앨범 그리드 모달 -->
+<div class="album-grid-overlay" id="album-grid-overlay">
+  <div class="album-grid-box">
+    <div class="album-grid-header">
+      <div class="album-grid-header-info">
+        <div class="album-grid-title" id="ag-title"></div>
+        <div class="album-grid-meta" id="ag-meta"></div>
+      </div>
+      <button id="ag-upload-btn" style="display:none;background:var(--primary);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:0.82rem;cursor:pointer;font-weight:600;margin-right:8px;" onclick="triggerAlbumPhotoUpload()">+ 사진 추가</button>
+      <button class="album-grid-close" onclick="closeAlbumGrid()">✕ 닫기</button>
+    </div>
+    <div class="album-photo-grid" id="ag-photo-grid"></div>
+  </div>
+</div>
+
 <div class="lightbox-overlay" id="lightbox-overlay">
   <div class="lightbox-top">
     <div>
@@ -2880,10 +2953,76 @@
     if (!g) return;
     const photos = getAlbumPhotos(g);
     if (photos.length === 0 && !adminMode) { showToast('사진이 없습니다.'); return; }
-    lbAlbumId = id;
-    lbIndex = 0;
+    // 바둑판 그리드로 열기
+    openAlbumGrid(id);
+  }
+
+  function openAlbumGrid(id) {
+    const g = data.gallery.find(x => x.id === id);
+    if (!g) return;
+    lbAlbumId = id; // lightbox용 기억
+    const photos = getAlbumPhotos(g);
+
+    document.getElementById('ag-title').textContent = g.title;
+    document.getElementById('ag-meta').textContent =
+      (g.date ? g.date + ' · ' : '') + photos.length + '장' + (g.desc ? ' · ' + g.desc : '');
+
+    // 관리자 업로드 버튼
+    const upBtn = document.getElementById('ag-upload-btn');
+    if (upBtn) upBtn.style.display = adminMode ? 'inline-flex' : 'none';
+
+    renderAlbumGrid(id);
+    document.getElementById('album-grid-overlay').classList.add('open');
+  }
+
+  function renderAlbumGrid(id) {
+    const g = data.gallery.find(x => x.id === id);
+    if (!g) return;
+    const photos = getAlbumPhotos(g);
+    const grid = document.getElementById('ag-photo-grid');
+    if (!grid) return;
+
+    if (photos.length === 0 && !adminMode) {
+      grid.innerHTML = '<div class="album-grid-empty">📷 아직 사진이 없어요</div>';
+      return;
+    }
+
+    let html = photos.map((p, i) => `
+      <div class="album-photo-cell" onclick="openPhotoFromGrid(${i})">
+        <img src="${p.data}" alt="사진 ${i+1}" loading="lazy" />
+        <button class="photo-del-btn" onclick="event.stopPropagation();deleteGridPhoto(${i})" title="삭제">✕</button>
+      </div>`).join('');
+
+    if (adminMode) {
+      html += `<div class="album-grid-add-btn" onclick="triggerAlbumPhotoUpload()">
+        <span class="plus">+</span><span>사진 추가</span>
+      </div>`;
+    }
+    grid.innerHTML = html;
+
+    // 메타 업데이트
+    document.getElementById('ag-meta').textContent =
+      (g.date ? g.date + ' · ' : '') + photos.length + '장' + (g.desc ? ' · ' + g.desc : '');
+  }
+
+  function openPhotoFromGrid(index) {
+    lbIndex = index;
     renderLightbox();
     document.getElementById('lightbox-overlay').classList.add('open');
+  }
+
+  function deleteGridPhoto(i) {
+    if (!confirm('이 사진을 삭제할까요?')) return;
+    const g = data.gallery.find(x => x.id === lbAlbumId);
+    if (!g || !g.photos) return;
+    g.photos.splice(i, 1);
+    saveData();
+    renderAlbumGrid(lbAlbumId);
+    showToast('사진이 삭제되었습니다');
+  }
+
+  function closeAlbumGrid() {
+    document.getElementById('album-grid-overlay').classList.remove('open');
   }
 
   function closeLightbox() {
@@ -2936,7 +3075,7 @@
     if (!lb || !lb.classList.contains('open')) return;
     if (e.key === 'ArrowRight') lightboxNav(1);
     if (e.key === 'ArrowLeft') lightboxNav(-1);
-    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'Escape') { closeLightbox(); closeAlbumGrid(); }
   });
 
   let pendingGalleryImageId = null;
@@ -2970,7 +3109,7 @@
           lbIndex = g.photos.length - files.length;
           saveData();
           renderGallery();
-          if (lbAlbumId === pendingGalleryImageId) renderLightbox();
+          if (lbAlbumId === pendingGalleryImageId) { renderAlbumGrid(lbAlbumId); renderLightbox(); }
           showToast(files.length + '장 업로드 완료!');
           pendingGalleryImageId = null;
           e.target.value = '';
@@ -2994,6 +3133,7 @@
     lbIndex = Math.max(0, lbIndex - 1);
     saveData();
     renderGallery();
+    renderAlbumGrid(lbAlbumId);
     renderLightbox();
     showToast('사진이 삭제되었습니다.');
   }
@@ -4172,7 +4312,4 @@
   loadEditableSections();
   renderWorshipOrder();
   renderSchedule();
-  renderHomeNotices();
-</script>
-</body>
-</html>                                                                                                                                                                                                                      
+  r
