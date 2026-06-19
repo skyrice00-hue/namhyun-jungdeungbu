@@ -2502,7 +2502,7 @@
   // IDs of sections whose innerHTML is saved/restored from localStorage
   const EDITABLE_SECTIONS = [
     'intro-tables', 'intro-student-table', 'intro-homeroom-table',
-    'intro-info-grid', 'home-schedule-box', 'home-info-grid',
+    'intro-info-grid', 'home-info-grid',
     'worship-campaign-box'
   ];
   const EDITABLE_CELLS_SELECTOR = [
@@ -2510,7 +2510,6 @@
     '#intro-student-table td:not([data-label])',
     '#intro-homeroom-table td:not([data-label])',
     '#intro-info-grid p, #intro-info-grid li',
-    '#home-schedule-box .schedule-item span:last-child',
     '#home-info-grid p',
     '#worship-campaign-box li',
     '.worship-row .wr-who-text',
@@ -2680,6 +2679,8 @@
   }
 
   function applyDataMigrations() {
+        // 관리자 모드 HTML이 localStorage에 저장된 경우 제거 (schedule-box는 renderSchedule()이 담당)
+        localStorage.removeItem(STORAGE_KEY + '-section-home-schedule-box');
         // backward compat: ensure events array exists
         // migrate single imageData → photos array
         (data.gallery || []).forEach(function(g) {
