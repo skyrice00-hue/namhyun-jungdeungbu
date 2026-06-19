@@ -2679,7 +2679,7 @@
   }
 
   function applyDataMigrations() {
-        // 관리자 모드 HTML이 localStorage에 저장된 경우 제거 (schedule-box는 renderSchedule()이 담당)
+        // 관리자 모드 HTML localStorage 정리
         localStorage.removeItem(STORAGE_KEY + '-section-home-schedule-box');
         // backward compat: ensure events array exists
         // migrate single imageData → photos array
@@ -2954,24 +2954,19 @@
     if (!g) return;
     const photos = getAlbumPhotos(g);
     if (photos.length === 0 && !adminMode) { showToast('사진이 없습니다.'); return; }
-    // 바둑판 그리드로 열기
     openAlbumGrid(id);
   }
 
   function openAlbumGrid(id) {
     const g = data.gallery.find(x => x.id === id);
     if (!g) return;
-    lbAlbumId = id; // lightbox용 기억
+    lbAlbumId = id;
     const photos = getAlbumPhotos(g);
-
     document.getElementById('ag-title').textContent = g.title;
     document.getElementById('ag-meta').textContent =
       (g.date ? g.date + ' · ' : '') + photos.length + '장' + (g.desc ? ' · ' + g.desc : '');
-
-    // 관리자 업로드 버튼
     const upBtn = document.getElementById('ag-upload-btn');
     if (upBtn) upBtn.style.display = adminMode ? 'inline-flex' : 'none';
-
     renderAlbumGrid(id);
     document.getElementById('album-grid-overlay').classList.add('open');
   }
@@ -2982,26 +2977,21 @@
     const photos = getAlbumPhotos(g);
     const grid = document.getElementById('ag-photo-grid');
     if (!grid) return;
-
     if (photos.length === 0 && !adminMode) {
       grid.innerHTML = '<div class="album-grid-empty">📷 아직 사진이 없어요</div>';
       return;
     }
-
-    let html = photos.map((p, i) => `
-      <div class="album-photo-cell" onclick="openPhotoFromGrid(${i})">
-        <img src="${p.data}" alt="사진 ${i+1}" loading="lazy" />
-        <button class="photo-del-btn" onclick="event.stopPropagation();deleteGridPhoto(${i})" title="삭제">✕</button>
-      </div>`).join('');
-
+    let htm = photos.map((p, i) =>
+      '<div class="album-photo-cell" onclick="openPhotoFromGrid(' + i + ')">' +
+      '<img src="' + p.data + '" alt="사진 ' + (i+1) + '" loading="lazy" />' +
+      '<button class="photo-del-btn" onclick="event.stopPropagation();deleteGridPhoto(' + i + ')" title="삭제">✕</button>' +
+      '</div>'
+    ).join('');
     if (adminMode) {
-      html += `<div class="album-grid-add-btn" onclick="triggerAlbumPhotoUpload()">
-        <span class="plus">+</span><span>사진 추가</span>
-      </div>`;
+      htm += '<div class="album-grid-add-btn" onclick="triggerAlbumPhotoUpload()">' +
+        '<span class="plus">+</span><span>사진 추가</span></div>';
     }
-    grid.innerHTML = html;
-
-    // 메타 업데이트
+    grid.innerHTML = htm;
     document.getElementById('ag-meta').textContent =
       (g.date ? g.date + ' · ' : '') + photos.length + '장' + (g.desc ? ' · ' + g.desc : '');
   }
@@ -4310,4 +4300,10 @@
 
   // ---- INIT ----
   loadData();
-  loadEdi
+  loadEditableSections();
+  renderWorshipOrder();
+  renderSchedule();
+  renderHomeNotices();
+</script>
+</body>
+</html>
